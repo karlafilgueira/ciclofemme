@@ -47,6 +47,7 @@
   --mov-medio:240ms cubic-bezier(.32,.72,.32,1);
   --mov-lento:420ms cubic-bezier(.22,.68,.28,1);
   --largura-app:460px;
+  --dia-tam:clamp(30px,8.4vw,40px);
 }
 @media (prefers-color-scheme:dark){
   :root{ --bg:#1C0D25; --surface:#271434; --text:#F6ECF2; --text-soft:#C0AECA;
@@ -163,16 +164,22 @@ input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
   padding:var(--sp-3) var(--sp-2);text-align:center;font-size:var(--t-micro);color:var(--text-soft)}
 .pilula-fase .nome{display:block;font-weight:600;color:var(--text);font-size:var(--t-small);margin:var(--sp-1) 0}
 
-.calendario{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-4)}
+.calendario{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:var(--sp-4);overflow:hidden}
 .calendario-cabecalho{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3)}
 .calendario-mes{font-family:var(--font-display);font-size:var(--t-h2);text-transform:capitalize}
-.calendario-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.calendario-dia-semana{text-align:center;font-size:var(--t-micro);color:var(--text-soft);padding-bottom:var(--sp-2)}
-.dia{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:none;
+.calendario-grade{display:grid;grid-template-columns:repeat(7,1fr);
+  gap:6px 0;justify-items:center;width:100%}
+.calendario-dia-semana{text-align:center;font-size:var(--t-micro);color:var(--text-soft);
+  padding-bottom:var(--sp-2);width:100%}
+/* Tamanho fixo em vez de aspect-ratio: o aspect-ratio dentro de grid
+   colapsava a altura das linhas e os dias vazavam por cima da legenda. */
+.dia{width:var(--dia-tam);height:var(--dia-tam);min-width:0;flex:none;padding:0;line-height:1;
+  display:flex;align-items:center;justify-content:center;border:none;
   background:transparent;border-radius:50%;font-size:var(--t-small);color:var(--text);cursor:pointer;
   transition:transform var(--mov-rapido),background var(--mov-rapido)}
 .dia:active{transform:scale(.88)}
-.dia.vazio{pointer-events:none}
+.dia.vazio{pointer-events:none;visibility:hidden}
 .dia.menstruacao{background:var(--rosa-150);color:var(--rosa-900);font-weight:600}
 .dia.fertil{background:var(--verde-150);color:#2F5A45}
 .dia.ovulacao{background:var(--lilas-150);color:var(--lilas-800);font-weight:600}
@@ -274,6 +281,15 @@ body.com-faixa .topo{padding-top:calc(var(--sp-4) + 28px)}
 
 .doc h2{font-family:var(--font-ui);font-size:var(--t-body);font-weight:600;margin:var(--sp-5) 0 var(--sp-2)}
 .doc p{color:var(--text-soft);margin-bottom:var(--sp-3);line-height:1.65;font-size:var(--t-small)}
+
+/* No modo escuro os tons claros do dia ficam ilegíveis: aqui vão os pares próprios. */
+@media (prefers-color-scheme:dark){
+  .dia.menstruacao{background:#5E2B3B;color:#FFD9E2}
+  .dia.fertil{background:#254433;color:#CFEBDB}
+  .dia.ovulacao{background:#3D2B60;color:#E4D8F8}
+  .dia.tpm{background:#2D2145;color:#CFC0E6}
+  .dia.hoje{box-shadow:inset 0 0 0 2px var(--rosa-300)}
+}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
@@ -502,16 +518,81 @@ function mapaDoMes(cfg, ano, mes){
   }
   return mapa;
 }
-function mediaDosCiclos(ciclos){
-  var inicios = (ciclos||[]).map(function(c){ return c.startDate; }).filter(Boolean).sort().slice(-7);
-  if (inicios.length < 2) return null;
-  var ints = [];
+/* Analisa os inícios de menstruação já registrados e devolve os números
+   que sustentam a previsão. Usa a MEDIANA como duração de referência:
+   um único ciclo atípico (doença, viagem, estresse) desloca a média, mas
+   quase não mexe na mediana. */
+function analisarCiclos(ciclos){
+  var inicios = (ciclos||[]).map(function(c){ return c.startDate; })
+    .filter(Boolean).sort()
+    .filter(function(v,i,arr){ return i === 0 || v !== arr[i-1]; });
+  if (!inicios.length) return null;
+
+  var todos = [];
   for (var i = 1; i < inicios.length; i++){
     var d = difDias(inicios[i-1], inicios[i]);
-    if (d >= 21 && d <= 45) ints.push(d);
+    if (d >= 15 && d <= 60) todos.push(d);   // fora disso é erro de digitação
   }
-  if (!ints.length) return null;
-  return Math.round(ints.reduce(function(a,b){ return a+b; },0) / ints.length);
+  var ultimoInicio = inicios[inicios.length-1];
+  if (!todos.length) return {n:0, registros:inicios.length, ultimoInicio:ultimoInicio};
+
+  var recentes = todos.slice(-6);            // últimos 6 ciclos
+  var ord = recentes.slice().sort(function(a,b){ return a-b; });
+  var meio = Math.floor(ord.length/2);
+  var mediana = ord.length % 2 ? ord[meio] : Math.round((ord[meio-1]+ord[meio])/2);
+  var media = Math.round(recentes.reduce(function(a,b){ return a+b; },0)/recentes.length);
+  var menor = ord[0], maior = ord[ord.length-1];
+  var variacao = maior - menor;
+
+  return {
+    n: recentes.length,
+    registros: inicios.length,
+    intervalos: recentes,
+    media: media,
+    mediana: mediana,
+    menor: menor,
+    maior: maior,
+    variacao: variacao,
+    ultimoInicio: ultimoInicio,
+    confianca: (recentes.length >= 3 && variacao <= 4) ? 'alta'
+             : (recentes.length >= 2 && variacao <= 9) ? 'media' : 'baixa'
+  };
+}
+
+function mediaDosCiclos(ciclos){
+  var a = analisarCiclos(ciclos);
+  return (a && a.n) ? a.mediana : null;
+}
+
+/* Ajusta a configuração com o que o histórico mostra:
+   a âncora passa a ser o início mais recente registrado e a duração
+   passa a ser a mediana dos ciclos reais. */
+function aplicarHistorico(){
+  estado.analise = analisarCiclos(estado.ciclos);
+  var a = estado.analise;
+  if (!a || !estado.config) return;
+  if (a.ultimoInicio && estado.config.ultimaMenstruacao &&
+      difDias(estado.config.ultimaMenstruacao, a.ultimoInicio) > 0){
+    estado.config.ultimaMenstruacao = a.ultimoInicio;
+  }
+  if (estado.config.ajusteAutomatico !== false && a.n >= 2){
+    estado.config.duracaoCiclo = limitar(a.mediana, 21, 45);
+  }
+}
+
+/* Faixa provável da próxima menstruação, a partir da variação observada. */
+function faixaPrevisao(dataCentral){
+  var a = estado.analise;
+  var margem = (a && a.n >= 2) ? Math.min(7, Math.max(1, Math.ceil(a.variacao/2))) : 3;
+  return { de: somarDias(dataCentral, -margem), ate: somarDias(dataCentral, margem), margem: margem };
+}
+
+function textoBaseDaPrevisao(){
+  var a = estado.analise;
+  if (!a || !a.n) return 'Estimativa inicial, ainda sem ciclos anteriores para comparar.';
+  return 'Baseado em ' + a.n + (a.n === 1 ? ' ciclo registrado' : ' ciclos registrados') +
+         ' · duração típica de ' + a.mediana + ' dias' +
+         (a.variacao ? ' · variação de ' + a.variacao + (a.variacao === 1 ? ' dia' : ' dias') : '');
 }
 
 /* =========================================================
@@ -571,8 +652,9 @@ function lerConfigCiclo(){ return DB.ciclo().get().then(function(s){ return s.ex
 function registrarCiclo(inicio){
   return confirmarEscrita(DB.ciclos().doc(inicio).set({startDate:inicio, endDate:null, criadoEm:new Date().toISOString()}, {merge:true}));
 }
+function excluirCiclo(id){ return confirmarEscrita(DB.ciclos().doc(id).delete()); }
 function listarCiclos(){
-  return DB.ciclos().orderBy('startDate','desc').limit(24).get().then(function(s){
+  return DB.ciclos().orderBy('startDate','desc').limit(120).get().then(function(s){
     return s.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }).reverse();
   });
 }
@@ -626,7 +708,8 @@ function mensagemErro(e){
 /* =========================================================
    5. ESTADO E NAVEGAÇÃO
    ========================================================= */
-var estado = { perfil:null, config:null, ciclos:[], mesVisivel:new Date(), dataRegistro:hojeISO() };
+var estado = { perfil:null, config:null, ciclos:[], analise:null,
+               mesVisivel:new Date(), dataRegistro:hojeISO() };
 var tela = $('#tela'), topo = $('#topo'), nav = $('#nav');
 var TELAS = {};
 
@@ -676,7 +759,7 @@ function renderizar(){
   Array.prototype.forEach.call(nav.querySelectorAll('.nav-item'), function(b){
     var ativa = b.dataset.rota === rota
       || (['registrar-dia','fertilidade','bem-estar','historico'].indexOf(rota) !== -1 && b.dataset.rota === 'registros')
-      || (['meus-ciclos','notificacoes','privacidade','termos'].indexOf(rota) !== -1 && b.dataset.rota === 'mais');
+      || (['meus-ciclos','ciclos-anteriores','notificacoes','privacidade','termos'].indexOf(rota) !== -1 && b.dataset.rota === 'mais');
     b.setAttribute('aria-current', ativa ? 'page' : 'false');
   });
   tela.innerHTML = '<div class="carregando"><div class="giro"></div></div>';
@@ -933,8 +1016,21 @@ TELAS.inicio = function(){
         '<div class="previsao">Estimativa: '+formatarData(r.proximaMenstruacao)+'</div>'+
       '</div></div>'}));
 
+  var faixa = faixaPrevisao(r.proximaMenstruacao);
   v.append(el('p',{class:'texto-suave',style:'text-align:center',
-    texto:'Dia '+r.diaDoCiclo+' de um ciclo de '+r.duracaoCiclo+' dias.'}));
+    texto:'Provavelmente entre ' + formatarData(faixa.de) + ' e ' + formatarData(faixa.ate) + '.'}));
+  v.append(el('p',{class:'texto-suave',style:'text-align:center;font-size:var(--t-micro);margin-top:var(--sp-1)',
+    texto:'Dia '+r.diaDoCiclo+' de um ciclo de '+r.duracaoCiclo+' dias · '+textoBaseDaPrevisao()}));
+
+  // Com pouco histórico a previsão é fraca: convidamos a preencher o que já existe em papel.
+  if (!estado.analise || estado.analise.n < 3){
+    v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-5)',
+      onclick:function(){ irPara('ciclos-anteriores'); },
+      html:'<span style="width:10px;height:34px;border-radius:var(--r-pill);background:var(--ouro-500);flex:none"></span>'+
+        '<span><strong>Tem anotações de meses anteriores?</strong>'+
+        '<span class="texto-suave" style="display:block">Cada ciclo que você adicionar deixa a previsão mais certeira.</span></span>'+
+        '<span class="seta">&#8250;</span>'}));
+  }
 
   var f = FASES[r.fase];
   v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-5)',
@@ -982,6 +1078,13 @@ TELAS.calendario = function(){
   tela.append(v);
 };
 
+/* "setembro de 2026" -> "Setembro 2026". O text-transform capitalize
+   deixava "Setembro De 2026", com o De maiúsculo no meio. */
+function nomeDoMes(data){
+  var m = data.toLocaleDateString('pt-BR', {month:'long'});
+  return m.charAt(0).toUpperCase() + m.slice(1) + ' ' + data.getFullYear();
+}
+
 function desenharCalendario(){
   var wrap = el('div',{class:'calendario'});
   var ref = estado.mesVisivel, ano = ref.getFullYear(), mes = ref.getMonth();
@@ -989,7 +1092,7 @@ function desenharCalendario(){
   cab.append(
     el('button',{class:'btn-icone','aria-label':'Mês anterior',html:'&#8249;',
       onclick:function(){ estado.mesVisivel = new Date(ano, mes-1, 1); renderizar(); }}),
-    el('div',{class:'calendario-mes',texto:ref.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}),
+    el('div',{class:'calendario-mes',texto:nomeDoMes(ref)}),
     el('button',{class:'btn-icone','aria-label':'Próximo mês',html:'&#8250;',
       onclick:function(){ estado.mesVisivel = new Date(ano, mes+1, 1); renderizar(); }})
   );
@@ -1122,6 +1225,7 @@ function talvezNovoCiclo(data){
   if (difDias(data, hojeISO()) < 0) return Promise.resolve();
   return registrarCiclo(data).then(listarCiclos).then(function(cs){
     estado.ciclos = cs;
+    estado.analise = analisarCiclos(cs);
     var media = cfg.ajusteAutomatico !== false ? mediaDosCiclos(cs) : null;
     var novo = {
       ultimaMenstruacao: data,
@@ -1319,7 +1423,8 @@ TELAS.mais = function(){
       '<span class="glifo">&#9432;</span><div>Você está sem conta. Se limpar os dados do navegador ou trocar de aparelho, seus registros se perdem.</div>'}));
   }
 
-  [['meus-ciclos','Meus dados do ciclo'],['notificacoes','Lembretes e notificações'],
+  [['meus-ciclos','Meus dados do ciclo'],['ciclos-anteriores','Meus ciclos anteriores'],
+   ['notificacoes','Lembretes e notificações'],
    ['privacidade','Privacidade e segurança'],['historico','Seus ciclos e histórico'],
    ['conteudo','Conteúdos e dicas'],['termos','Termos e privacidade']
   ].forEach(function(it){
@@ -1362,6 +1467,12 @@ TELAS['meus-ciclos'] = function(){
   v.append(c);
   alternador(bAjuste, ajuste, function(x){ ajuste = x; });
 
+  v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-4)',
+    onclick:function(){ irPara('ciclos-anteriores'); },
+    html:'<span><strong>Meus ciclos anteriores</strong>'+
+      '<span class="texto-suave" style="display:block">Adicionar registros antigos para melhorar a previsão</span></span>'+
+      '<span class="seta">&#8250;</span>'}));
+
   var erro = el('div',{class:'campo erro oculto',role:'alert'});
   var btn = el('button',{class:'btn',style:'margin-top:var(--sp-5)',texto:'Salvar alterações'});
   v.append(erro, btn);
@@ -1381,8 +1492,124 @@ TELAS['meus-ciclos'] = function(){
     salvarConfigCiclo(novo)
       .then(function(){ return registrarCiclo(u); })
       .then(listarCiclos)
-      .then(function(cs){ estado.ciclos = cs; estado.config = normalizar(novo); avisar('Dados atualizados.'); irPara('inicio'); })
+      .then(function(cs){
+        estado.ciclos = cs; estado.config = normalizar(novo); aplicarHistorico();
+        avisar('Dados atualizados.'); irPara('inicio');
+      })
       .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar alterações'); });
+  };
+};
+
+TELAS['ciclos-anteriores'] = function(){
+  cabecalho({titulo:'Meus ciclos anteriores', voltar:'mais'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+
+  v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-5)',
+    texto:'Adicione o primeiro dia de menstruação de cada mês que você já tem anotado. Pode ser de uma agenda, de outro app ou de memória. Quanto mais ciclos, melhor fica a previsão.'}));
+
+  var iData = el('input',{type:'date',max:hojeISO()});
+  v.append(campo('Primeiro dia da menstruação', iData));
+  var erro = el('div',{class:'campo erro oculto',role:'alert'});
+  var btnAdd = el('button',{class:'btn',texto:'Adicionar este ciclo'});
+  v.append(erro, btnAdd);
+
+  // --- Resumo do que o histórico já diz ---
+  var a = estado.analise;
+  if (a && a.n){
+    var rotuloConfianca = a.confianca === 'alta' ? 'Seus ciclos são bem regulares.'
+      : a.confianca === 'media' ? 'Seus ciclos variam um pouco.'
+      : 'Seus ciclos variam bastante, então a previsão é mais aproximada.';
+    v.append(el('div',{class:'cartao',style:'margin-top:var(--sp-6)',html:
+      '<strong>Duração típica: ' + a.mediana + ' dias</strong>' +
+      '<p class="texto-suave" style="margin-top:var(--sp-2)">' +
+      'O mais curto teve ' + a.menor + ' dias e o mais longo ' + a.maior + '. ' + rotuloConfianca + '</p>'}));
+  }
+
+  // --- Lista dos ciclos registrados ---
+  v.append(el('h2',{class:'secao-titulo',texto:'Ciclos registrados'}));
+  var lista = el('div');
+  v.append(lista);
+  v.append(el('p',{class:'aviso-rodape',texto:
+    'A previsão usa a mediana dos seus últimos ciclos, não a média, para que um mês atípico não desloque todas as datas. Ainda assim é uma estimativa.'}));
+  tela.append(v);
+
+  function desenharLista(){
+    lista.innerHTML = '';
+    var inicios = estado.ciclos.map(function(c){ return c.startDate; }).filter(Boolean).sort();
+    if (!inicios.length){
+      lista.append(el('div',{class:'vazio',html:
+        '<span class="glifo">&#9675;</span>Nenhum ciclo registrado ainda.'}));
+      return;
+    }
+    inicios.slice().reverse().forEach(function(iso, i){
+      var pos = inicios.length - 1 - i;
+      var intervalo = pos > 0 ? difDias(inicios[pos-1], iso) : null;
+      var linha = el('div',{class:'cartao',
+        style:'display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-2)'});
+      linha.append(
+        el('span',{style:'width:10px;height:10px;border-radius:50%;background:var(--rosa-500);flex:none'}),
+        el('span',{style:'flex:1',html:
+          '<strong>'+formatarDataLonga(iso)+'</strong>'+
+          '<span class="texto-suave" style="display:block">'+
+          (intervalo ? intervalo + ' dias depois do anterior' : 'primeiro ciclo registrado')+'</span>'}),
+        el('button',{class:'btn-icone','aria-label':'Remover este ciclo',
+          html:'&#10005;', style:'color:var(--danger)',
+          onclick:function(){ remover(iso); }})
+      );
+      lista.append(linha);
+    });
+  }
+  desenharLista();
+
+  function recarregar(){
+    return listarCiclos().then(function(cs){
+      estado.ciclos = cs;
+      aplicarHistorico();
+      desenharLista();
+    });
+  }
+
+  function remover(iso){
+    if (!confirm('Remover o ciclo de ' + formatarDataLonga(iso) + '?')) return;
+    excluirCiclo(iso).then(recarregar)
+      .then(function(){ avisar('Ciclo removido.'); })
+      .catch(function(e){ console.error(e); avisar(mensagemErro(e)); });
+  }
+
+  btnAdd.onclick = function(){
+    var d = iData.value;
+    var jaTem = estado.ciclos.some(function(c){ return c.startDate === d; });
+    var problema = !d ? 'Escolha a data do primeiro dia de menstruação.'
+      : difDias(d, hojeISO()) < 0 ? 'Essa data é futura. Escolha um dia que já passou.'
+      : difDias(d, hojeISO()) > 1460 ? 'Essa data é de mais de quatro anos atrás.'
+      : jaTem ? 'Esse ciclo já está na lista.' : null;
+    if (problema){ erro.textContent = problema; erro.classList.remove('oculto'); return; }
+    erro.classList.add('oculto');
+    ocupar(btnAdd, true);
+    registrarCiclo(d)
+      .then(recarregar)
+      .then(function(){
+        // Se for o ciclo mais recente, ele passa a ser a âncora das previsões.
+        if (estado.config && estado.analise && estado.analise.ultimoInicio === d){
+          return salvarConfigCiclo({
+            ultimaMenstruacao: d,
+            duracaoCiclo: estado.config.duracaoCiclo,
+            duracaoMenstruacao: estado.config.duracaoMenstruacao,
+            ajusteAutomatico: estado.config.ajusteAutomatico
+          });
+        }
+      })
+      .then(function(){
+        iData.value = '';
+        ocupar(btnAdd, false, 'Adicionar este ciclo');
+        avisar('Ciclo adicionado.');
+      })
+      .catch(function(e){
+        console.error(e);
+        avisar(mensagemErro(e));
+        ocupar(btnAdd, false, 'Adicionar este ciclo');
+      });
   };
 };
 
@@ -1475,6 +1702,7 @@ function iniciarApp(){
     return Promise.all([lerConfigCiclo(), listarCiclos()]).then(function(res){
       estado.config = res[0] ? normalizar(res[0]) : null;
       estado.ciclos = res[1];
+      aplicarHistorico();
       nav.classList.remove('oculto');
       tela.style.padding = 'var(--sp-5) var(--sp-5) 96px';
       montarNav();

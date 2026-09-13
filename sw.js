@@ -14,7 +14,7 @@
    Ao publicar uma versão nova do app, troque o número em VERSAO.
    =========================================================== */
 
-const VERSAO = 'ciclo-femme-v1';
+const VERSAO = 'ciclo-femme-v2';
 const CACHE_APP = `${VERSAO}-app`;
 const CACHE_EXTERNO = `${VERSAO}-externo`;
 
