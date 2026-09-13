@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDF4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C0D25" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Calendário menstrual para acompanhar seu ciclo, seus registros e seu bem-estar.">
+<title>Ciclo Femme</title>
+
+<!-- Instalação como app -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ciclo Femme">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   CICLO FEMME — tokens
+   ========================================================= */
+:root{
+  --rosa-900:#8E2E43; --rosa-700:#B23F5B; --rosa-600:#C74C69; --rosa-500:#D1506B;
+  --rosa-300:#E79DAF; --rosa-150:#F6D7DF; --rosa-050:#FDEDF1;
+  --lilas-800:#56399A; --lilas-600:#7550B8; --lilas-500:#8E63C4;
+  --lilas-300:#BCA3E4; --lilas-150:#E4D9F6; --lilas-050:#F3EDFB;
+  --verde-500:#6FAE8C; --verde-150:#D6EBE0;
+  --ouro-500:#C89B5A; --ouro-300:#E3C69A;
+  --tinta-900:#2A1436; --tinta-700:#4A3153; --tinta-500:#6E5A78; --tinta-400:#8F7E98;
+  --linha:#EDDDE1; --superficie:#FFFCFB; --creme-100:#FDF4F1; --creme-200:#F8E9E5;
+  --bg:var(--creme-100); --surface:var(--superficie); --text:var(--tinta-900);
+  --text-soft:var(--tinta-500); --border:var(--linha);
+  --primary:var(--rosa-500); --primary-strong:var(--rosa-700); --on-primary:#FFF8F9;
+  --danger:#C0392B;
+  --font-display:"Jost","Century Gothic",system-ui,sans-serif;
+  --font-ui:"Inter",system-ui,-apple-system,sans-serif;
+  --t-display:2.75rem; --t-h1:1.625rem; --t-h2:1.125rem;
+  --t-body:.9375rem; --t-small:.8125rem; --t-micro:.6875rem;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-7:32px; --sp-8:44px;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-pill:999px;
+  --sombra-suave:0 1px 2px rgba(42,20,54,.04),0 6px 18px rgba(42,20,54,.05);
+  --sombra-alta:0 10px 32px rgba(42,20,54,.12);
+  --mov-rapido:140ms cubic-bezier(.32,.72,.32,1);
+  --mov-medio:240ms cubic-bezier(.32,.72,.32,1);
+  --mov-lento:420ms cubic-bezier(.22,.68,.28,1);
+  --largura-app:460px;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#1C0D25; --surface:#271434; --text:#F6ECF2; --text-soft:#C0AECA;
+    --border:#3A2349; --creme-200:#331E42; --rosa-050:#3A1C2C; --rosa-150:#4E2537;
+    --lilas-050:#2E1E45; --lilas-150:#3C2757; --verde-150:#274036; }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:var(--font-ui);font-size:var(--t-body);line-height:1.5;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh}
+h1,h2,h3{font-family:var(--font-display);font-weight:300;margin:0;letter-spacing:-.01em}
+p{margin:0}
+button{font:inherit;color:inherit}
+a{color:var(--primary-strong)}
+:focus-visible{outline:2px solid var(--lilas-500);outline-offset:3px;border-radius:6px}
+
+.app-shell{max-width:var(--largura-app);margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+.conteudo{flex:1;padding:var(--sp-5) var(--sp-5) 96px}
+.tela-titulo{font-size:var(--t-h1);text-align:center;padding:var(--sp-4) 0 var(--sp-2)}
+.secao-titulo{font-family:var(--font-ui);font-size:var(--t-small);font-weight:600;
+  color:var(--text-soft);margin:var(--sp-6) 0 var(--sp-3)}
+.texto-suave{color:var(--text-soft);font-size:var(--t-small)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+  width:100%;min-height:52px;padding:0 var(--sp-5);border:none;border-radius:var(--r-pill);
+  background:var(--primary);color:var(--on-primary);font-weight:600;cursor:pointer;
+  transition:transform var(--mov-rapido),background var(--mov-rapido),box-shadow var(--mov-rapido);
+  box-shadow:0 6px 16px rgba(209,80,107,.22)}
+.btn:hover{background:var(--primary-strong)}
+.btn:active{transform:scale(.97);box-shadow:0 2px 8px rgba(209,80,107,.2)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btn-secundario{background:transparent;color:var(--primary-strong);border:1px solid var(--rosa-150);box-shadow:none}
+.btn-secundario:hover{background:var(--rosa-050)}
+.btn-texto{background:none;border:none;box-shadow:none;color:var(--text-soft);
+  min-height:44px;width:auto;cursor:pointer;transition:transform var(--mov-rapido)}
+.btn-texto:active{transform:scale(.96)}
+.btn-icone{width:44px;height:44px;min-height:44px;padding:0;border-radius:var(--r-pill);
+  background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;
+  justify-content:center;color:var(--text);transition:background var(--mov-rapido),transform var(--mov-rapido)}
+.btn-icone:hover{background:var(--creme-200)}
+.btn-icone:active{transform:scale(.9)}
+
+.cartao{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:var(--sp-4);box-shadow:var(--sombra-suave)}
+.cartao-link{display:flex;align-items:center;gap:var(--sp-3);width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:var(--sp-4);cursor:pointer;transition:transform var(--mov-rapido),background var(--mov-rapido)}
+.cartao-link:active{transform:scale(.985);background:var(--creme-200)}
+.cartao-link .seta{margin-left:auto;color:var(--tinta-400)}
+
+.campo{margin-bottom:var(--sp-4)}
+.campo>label{display:block;font-size:var(--t-small);font-weight:500;margin-bottom:var(--sp-2)}
+.campo input,.campo select,.campo textarea{width:100%;min-height:50px;padding:var(--sp-3) var(--sp-4);
+  border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);
+  color:var(--text);font:inherit;transition:border-color var(--mov-rapido),box-shadow var(--mov-rapido)}
+.campo textarea{min-height:96px;resize:vertical}
+.campo input:focus,.campo select:focus,.campo textarea:focus{outline:none;
+  border-color:var(--rosa-300);box-shadow:0 0 0 3px var(--rosa-050)}
+.campo .ajuda{font-size:var(--t-micro);color:var(--text-soft);margin-top:var(--sp-1)}
+.campo.erro{color:var(--danger);font-size:var(--t-small)}
+
+.grade-opcoes{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-2)}
+.grade-opcoes.col-3{grid-template-columns:repeat(3,1fr)}
+.opcao{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
+  padding:var(--sp-3) var(--sp-1);border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface);cursor:pointer;font-size:var(--t-micro);color:var(--text-soft);
+  text-align:center;line-height:1.25;
+  transition:transform var(--mov-rapido),border-color var(--mov-rapido),background var(--mov-rapido),color var(--mov-rapido)}
+.opcao .glifo{font-size:20px;line-height:1}
+.opcao:active{transform:scale(.93)}
+.opcao[aria-pressed="true"]{border-color:var(--rosa-300);background:var(--rosa-050);
+  color:var(--primary-strong);font-weight:600}
+
+.linha-alternador{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) 0;
+  border-bottom:1px solid var(--border)}
+.linha-alternador:last-child{border-bottom:none}
+.linha-alternador .rotulo{flex:1}
+.alternador{width:50px;height:30px;flex:none;border-radius:var(--r-pill);border:none;
+  background:var(--creme-200);position:relative;cursor:pointer;transition:background var(--mov-medio)}
+.alternador::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;
+  border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(42,20,54,.25);
+  transition:transform var(--mov-medio)}
+.alternador[aria-checked="true"]{background:var(--rosa-500)}
+.alternador[aria-checked="true"]::after{transform:translateX(20px)}
+
+.linha-escala{display:grid;grid-template-columns:28px 72px 1fr 38px;align-items:center;
+  gap:var(--sp-2);padding:var(--sp-2) 0}
+.linha-escala .glifo{font-size:17px;text-align:center}
+.linha-escala .valor{font-variant-numeric:tabular-nums;font-size:var(--t-small);
+  color:var(--text-soft);text-align:right}
+input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:6px;
+  border-radius:var(--r-pill);background:var(--rosa-150);outline:none}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:20px;height:20px;border-radius:50%;background:var(--rosa-500);border:3px solid var(--surface);
+  box-shadow:0 1px 4px rgba(42,20,54,.25);cursor:pointer;transition:transform var(--mov-rapido)}
+input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.25)}
+input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
+  background:var(--rosa-500);border:3px solid var(--surface);cursor:pointer}
+
+.anel-envoltorio{display:flex;justify-content:center;padding:var(--sp-4) 0 var(--sp-6)}
+.anel{width:236px;height:236px}
+.anel .trilho{fill:none;stroke:var(--creme-200);stroke-width:12}
+.anel .progresso{fill:none;stroke-width:12;stroke-linecap:round;stroke:url(#gradRosa);
+  transition:stroke-dashoffset var(--mov-lento)}
+.anel-texto .rotulo{font-size:var(--t-small);color:var(--text-soft)}
+.anel-texto .numero{font-family:var(--font-display);font-weight:300;font-size:var(--t-display);
+  line-height:1.1;color:var(--rosa-700)}
+.anel-texto .previsao{font-size:var(--t-micro);color:var(--text-soft)}
+
+.faixa-fases{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);margin-top:var(--sp-4)}
+.pilula-fase{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:var(--sp-3) var(--sp-2);text-align:center;font-size:var(--t-micro);color:var(--text-soft)}
+.pilula-fase .nome{display:block;font-weight:600;color:var(--text);font-size:var(--t-small);margin:var(--sp-1) 0}
+
+.calendario{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-4)}
+.calendario-cabecalho{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3)}
+.calendario-mes{font-family:var(--font-display);font-size:var(--t-h2);text-transform:capitalize}
+.calendario-grade{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calendario-dia-semana{text-align:center;font-size:var(--t-micro);color:var(--text-soft);padding-bottom:var(--sp-2)}
+.dia{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:none;
+  background:transparent;border-radius:50%;font-size:var(--t-small);color:var(--text);cursor:pointer;
+  transition:transform var(--mov-rapido),background var(--mov-rapido)}
+.dia:active{transform:scale(.88)}
+.dia.vazio{pointer-events:none}
+.dia.menstruacao{background:var(--rosa-150);color:var(--rosa-900);font-weight:600}
+.dia.fertil{background:var(--verde-150);color:#2F5A45}
+.dia.ovulacao{background:var(--lilas-150);color:var(--lilas-800);font-weight:600}
+.dia.tpm{background:var(--lilas-050);color:var(--lilas-800)}
+.dia.hoje{box-shadow:inset 0 0 0 2px var(--rosa-500)}
+.legenda{display:grid;gap:var(--sp-2);margin-top:var(--sp-4)}
+.legenda-item{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--t-small);color:var(--text-soft)}
+.legenda-cor{width:12px;height:12px;border-radius:50%}
+
+.aviso{display:flex;gap:var(--sp-3);background:var(--lilas-050);border:1px solid var(--lilas-150);
+  border-radius:var(--r-md);padding:var(--sp-4);font-size:var(--t-small);color:var(--tinta-700);line-height:1.55}
+.aviso .glifo{flex:none;font-size:16px;color:var(--lilas-600)}
+.aviso strong{color:var(--lilas-800)}
+.aviso-rodape{font-size:var(--t-micro);color:var(--text-soft);text-align:center;
+  line-height:1.5;padding:var(--sp-6) var(--sp-2) 0}
+
+/* --- Faixa de estado da conexão --- */
+.faixa-conexao{position:fixed;top:0;left:0;right:0;z-index:70;
+  background:var(--lilas-150);color:var(--lilas-800);text-align:center;
+  font-size:var(--t-micro);padding:var(--sp-2) var(--sp-4);
+  transform:translateY(-100%);transition:transform var(--mov-medio)}
+.faixa-conexao.visivel{transform:none}
+.faixa-conexao.atualizacao{background:var(--rosa-150);color:var(--rosa-900);cursor:pointer}
+body.com-faixa .topo{padding-top:calc(var(--sp-4) + 28px)}
+
+.nav-inferior{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;
+  max-width:var(--largura-app);display:grid;grid-template-columns:repeat(5,1fr);
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:var(--sp-2) 0 calc(var(--sp-2) + env(safe-area-inset-bottom));z-index:20}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;
+  border:none;cursor:pointer;font-size:var(--t-micro);color:var(--tinta-400);padding:var(--sp-1) 0;
+  transition:color var(--mov-rapido)}
+.nav-item .glifo{font-size:19px;transition:transform var(--mov-medio)}
+.nav-item:active .glifo{transform:scale(.85)}
+.nav-item[aria-current="page"]{color:var(--rosa-600)}
+.nav-item[aria-current="page"] .glifo{transform:translateY(-1px) scale(1.08)}
+
+.topo{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-4) var(--sp-5) 0;
+  max-width:var(--largura-app);margin:0 auto;width:100%}
+.topo .centro{flex:1;text-align:center}
+.topo .saudacao{font-family:var(--font-display);font-size:var(--t-h2)}
+.topo .subtitulo{font-size:var(--t-micro);color:var(--text-soft)}
+
+.tela{animation:entrada var(--mov-medio) both}
+@keyframes entrada{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.toast{position:fixed;left:50%;bottom:104px;transform:translate(-50%,12px);
+  background:var(--tinta-900);color:#FFF6FA;padding:var(--sp-3) var(--sp-5);
+  border-radius:var(--r-pill);font-size:var(--t-small);box-shadow:var(--sombra-alta);
+  opacity:0;pointer-events:none;transition:opacity var(--mov-medio),transform var(--mov-medio);
+  z-index:60;max-width:88vw;text-align:center}
+.toast.visivel{opacity:1;transform:translate(-50%,0)}
+
+.carregando{display:flex;justify-content:center;padding:var(--sp-8) 0}
+.giro{width:26px;height:26px;border-radius:50%;border:2px solid var(--rosa-150);
+  border-top-color:var(--rosa-500);animation:girar 700ms linear infinite}
+@keyframes girar{to{transform:rotate(360deg)}}
+.vazio{text-align:center;color:var(--text-soft);padding:var(--sp-8) var(--sp-4)}
+.vazio .glifo{font-size:30px;display:block;margin-bottom:var(--sp-3);opacity:.6}
+.oculto{display:none !important}
+
+/* --- Abertura --- */
+.abertura{position:fixed;inset:0;z-index:50;display:grid;place-content:center;
+  justify-items:center;background:var(--bg);
+  transition:opacity var(--mov-lento),visibility var(--mov-lento)}
+.abertura.saindo{opacity:0;visibility:hidden}
+.marca-nome{font-family:var(--font-display);font-weight:200;font-size:3.25rem;
+  letter-spacing:.06em;color:var(--rosa-900);margin-top:var(--sp-4)}
+.marca-sub{font-family:var(--font-display);font-weight:300;font-size:1.05rem;
+  letter-spacing:.42em;color:var(--rosa-500);margin-left:.42em}
+.marca-lema{margin-top:var(--sp-7);text-align:center;font-family:var(--font-display);
+  font-size:1.05rem;color:var(--tinta-700);line-height:1.7}
+.fio{width:56px;height:1px;background:var(--ouro-300);margin:var(--sp-6) auto}
+.marca-rodape{text-align:center;font-family:var(--font-display);color:var(--tinta-500);line-height:1.7}
+.anel-marca .aro{animation:tracar 1400ms var(--mov-lento) both}
+.anel-marca .conta{animation:surgir 600ms 900ms both;transform-origin:176px 118px}
+@keyframes tracar{from{stroke-dashoffset:400}to{stroke-dashoffset:34}}
+@keyframes surgir{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:scale(1)}}
+
+.painel{padding:var(--sp-6) var(--sp-5) var(--sp-8);max-width:var(--largura-app);margin:0 auto}
+.painel-topo{text-align:center;margin-bottom:var(--sp-7)}
+.painel-topo h1{font-size:var(--t-display);font-weight:200;color:var(--rosa-900)}
+.painel-topo p{color:var(--text-soft);margin-top:var(--sp-2)}
+.abas{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--creme-200);
+  padding:4px;border-radius:var(--r-pill);margin-bottom:var(--sp-6)}
+.aba{border:none;background:transparent;border-radius:var(--r-pill);min-height:42px;
+  cursor:pointer;color:var(--text-soft);font-weight:500;
+  transition:background var(--mov-medio),color var(--mov-medio),transform var(--mov-rapido)}
+.aba:active{transform:scale(.97)}
+.aba[aria-selected="true"]{background:var(--surface);color:var(--rosa-700);box-shadow:var(--sombra-suave)}
+.divisor{display:flex;align-items:center;gap:var(--sp-3);margin:var(--sp-6) 0;
+  color:var(--tinta-400);font-size:var(--t-small)}
+.divisor::before,.divisor::after{content:"";flex:1;height:1px;background:var(--border)}
+
+.barra-etapas{display:grid;grid-auto-flow:column;gap:6px;flex:1}
+.barra-etapas span{height:3px;border-radius:var(--r-pill);background:var(--creme-200);
+  transition:background var(--mov-medio)}
+.barra-etapas span.feito{background:var(--rosa-500)}
+
+.doc h2{font-family:var(--font-ui);font-size:var(--t-body);font-weight:600;margin:var(--sp-5) 0 var(--sp-2)}
+.doc p{color:var(--text-soft);margin-bottom:var(--sp-3);line-height:1.65;font-size:var(--t-small)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<!-- =================== ABERTURA =================== -->
+<div class="abertura" id="abertura" aria-hidden="true">
+  <svg class="anel-marca" width="150" height="150" viewBox="0 0 240 190" fill="none">
+    <defs><linearGradient id="ouro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E3C69A"/><stop offset="50%" stop-color="#C89B5A"/>
+      <stop offset="100%" stop-color="#A9762F"/></linearGradient></defs>
+    <circle class="aro" cx="120" cy="95" r="62" stroke="url(#ouro)" stroke-width="3.5"
+      stroke-linecap="round" stroke-dasharray="400" stroke-dashoffset="34" transform="rotate(-38 120 95)"/>
+    <circle class="conta" cx="176" cy="118" r="15" fill="#D1506B"/>
+  </svg>
+  <div class="marca-nome">Ciclo</div>
+  <div class="marca-sub">Femme</div>
+  <div class="marca-lema">Seu ciclo.<br>Seu ritmo.</div>
+  <div class="fio"></div>
+  <div class="marca-rodape">Mais saúde.<br>Mais você.</div>
+</div>
+
+<header class="topo" id="topo"></header>
+<main class="app-shell"><div class="conteudo" id="tela"></div></main>
+<nav class="nav-inferior oculto" id="nav" aria-label="Navegação principal"></nav>
+
+<!-- =================== FIREBASE (SDK clássico) =================== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================
+   1. CONFIGURAÇÃO — troque pelos dados do SEU projeto Firebase
+   Console do Firebase → Configurações do projeto → Seus apps → Web
+   ========================================================= */
+var firebaseConfig = {
+  apiKey: "AIzaSyADutNvV0tRwDhRHXniScbr5zbQQf13I9w",
+  authDomain: "ciclo-femme.firebaseapp.com",
+  projectId: "ciclo-femme",
+  storageBucket: "ciclo-femme.firebasestorage.app",
+  messagingSenderId: "339734736129",
+  appId: "1:339734736129:web:22fccada2bbc4a7f193f00"
+};
+
+firebase.initializeApp(firebaseConfig);
+var auth = firebase.auth();
+var db = firebase.firestore();
+
+/* Cache offline do Firestore.
+   Com isso, o app lê seus dados sem internet e guarda o que você
+   escrever, sincronizando sozinho quando a conexão voltar.
+   Falha só quando há várias abas abertas ou o navegador não suporta —
+   nesse caso o app segue funcionando, mas apenas online. */
+db.enablePersistence({ synchronizeTabs: true }).catch(function (e) {
+  console.warn('Cache offline indisponível:', e && e.code);
+});
+
+/* =========================================================
+   2. UTILITÁRIOS
+   ========================================================= */
+function $(sel, raiz){ return (raiz||document).querySelector(sel); }
+function el(tag, attrs, filhos){
+  var e = document.createElement(tag);
+  attrs = attrs || {};
+  for (var k in attrs){
+    var v = attrs[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k === 'texto') e.textContent = v;
+    else if (k.slice(0,2) === 'on') e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k, v);
+  }
+  [].concat(filhos || []).forEach(function(f){ if (f) e.append(f); });
+  return e;
+}
+var toastEl, toastTimer;
+function avisar(texto){
+  if (!toastEl){ toastEl = el('div',{class:'toast',role:'status'}); document.body.append(toastEl); }
+  toastEl.textContent = texto;
+  toastEl.classList.add('visivel');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toastEl.classList.remove('visivel'); }, 2600);
+}
+function ocupar(btn, ocupado, textoOriginal){
+  if (ocupado){ btn.dataset.texto = btn.textContent; btn.disabled = true; btn.textContent = 'Só um instante…'; }
+  else { btn.disabled = false; btn.textContent = textoOriginal || btn.dataset.texto || btn.textContent; }
+}
+function vibrar(){ if (navigator.vibrate) navigator.vibrate(8); }
+
+function grupoSelecao(container, multiplo){
+  container.addEventListener('click', function(e){
+    var btn = e.target.closest('.opcao');
+    if (!btn || !container.contains(btn)) return;
+    var ativo = btn.getAttribute('aria-pressed') === 'true';
+    if (!multiplo){
+      Array.prototype.forEach.call(container.querySelectorAll('.opcao'), function(b){
+        b.setAttribute('aria-pressed','false');
+      });
+    }
+    btn.setAttribute('aria-pressed', String(!ativo));
+    vibrar();
+  });
+}
+function selecionados(container, multiplo){
+  var ativos = Array.prototype.map.call(
+    container.querySelectorAll('.opcao[aria-pressed="true"]'), function(b){ return b.dataset.valor; });
+  return multiplo ? ativos : (ativos[0] || null);
+}
+function marcarSelecao(container, valor){
+  var vals = [].concat(valor || []);
+  Array.prototype.forEach.call(container.querySelectorAll('.opcao'), function(b){
+    b.setAttribute('aria-pressed', String(vals.indexOf(b.dataset.valor) !== -1));
+  });
+}
+function alternador(btn, inicial, aoMudar){
+  btn.setAttribute('role','switch');
+  btn.setAttribute('aria-checked', String(!!inicial));
+  btn.addEventListener('click', function(){
+    var novo = btn.getAttribute('aria-checked') !== 'true';
+    btn.setAttribute('aria-checked', String(novo));
+    vibrar();
+    if (aoMudar) aoMudar(novo);
+  });
+}
+function ligado(btn){ return btn.getAttribute('aria-checked') === 'true'; }
+
+/* =========================================================
+   3. DATAS E MOTOR DO CICLO
+   Todas as saídas são ESTIMATIVAS pelo método do calendário.
+   ========================================================= */
+function paraISO(d){
+  d = new Date(d);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function deISO(iso){ var p = String(iso).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+function hojeISO(){ return paraISO(new Date()); }
+function somarDias(iso, n){ var d = deISO(iso); d.setDate(d.getDate()+n); return paraISO(d); }
+function difDias(a, b){ return Math.round((deISO(b) - deISO(a)) / 86400000); }
+function formatarData(iso, op){ return deISO(iso).toLocaleDateString('pt-BR', op || {day:'numeric',month:'long'}); }
+function formatarDataLonga(iso){ return formatarData(iso,{day:'numeric',month:'long',year:'numeric'}); }
+
+var FASES = {
+  menstruacao:{nome:'Menstruação',      cor:'var(--rosa-500)',  classe:'menstruacao'},
+  folicular:  {nome:'Fase folicular',   cor:'var(--ouro-500)',  classe:'folicular'},
+  fertil:     {nome:'Período fértil',   cor:'var(--verde-500)', classe:'fertil'},
+  ovulacao:   {nome:'Ovulação',         cor:'var(--lilas-500)', classe:'ovulacao'},
+  lutea:      {nome:'Fase lútea',       cor:'var(--lilas-300)', classe:'lutea'},
+  tpm:        {nome:'Fase lútea (TPM)', cor:'var(--lilas-300)', classe:'tpm'}
+};
+
+function limitar(n,min,max){ return Math.min(max, Math.max(min, n)); }
+function normalizar(cfg){
+  cfg = cfg || {};
+  return {
+    ultimaMenstruacao: cfg.ultimaMenstruacao || null,
+    duracaoCiclo: limitar(Number(cfg.duracaoCiclo) || 28, 21, 45),
+    duracaoMenstruacao: limitar(Number(cfg.duracaoMenstruacao) || 5, 1, 10),
+    faseLutea: 14,
+    ajusteAutomatico: cfg.ajusteAutomatico !== false
+  };
+}
+function inicioDoCiclo(cfg, iso){
+  cfg = normalizar(cfg);
+  if (!cfg.ultimaMenstruacao) return null;
+  var voltas = Math.floor(difDias(cfg.ultimaMenstruacao, iso) / cfg.duracaoCiclo);
+  return somarDias(cfg.ultimaMenstruacao, voltas * cfg.duracaoCiclo);
+}
+function marcosDoCiclo(cfg, inicio){
+  var c = normalizar(cfg);
+  var ovulacao = somarDias(inicio, c.duracaoCiclo - c.faseLutea - 1);
+  return {
+    inicio: inicio,
+    fimMenstruacao: somarDias(inicio, c.duracaoMenstruacao - 1),
+    inicioFertil: somarDias(ovulacao, -5),
+    ovulacao: ovulacao,
+    fimFertil: somarDias(ovulacao, 1),
+    inicioTPM: somarDias(inicio, c.duracaoCiclo - 5),
+    proximaMenstruacao: somarDias(inicio, c.duracaoCiclo),
+    fim: somarDias(inicio, c.duracaoCiclo - 1)
+  };
+}
+function entre(iso, de, ate){ return difDias(de, iso) >= 0 && difDias(iso, ate) >= 0; }
+function faseDoDia(cfg, iso){
+  var inicio = inicioDoCiclo(cfg, iso);
+  if (!inicio) return null;
+  var m = marcosDoCiclo(cfg, inicio);
+  if (entre(iso, m.inicio, m.fimMenstruacao)) return 'menstruacao';
+  if (iso === m.ovulacao) return 'ovulacao';
+  if (entre(iso, m.inicioFertil, m.fimFertil)) return 'fertil';
+  if (entre(iso, m.inicioTPM, m.fim)) return 'tpm';
+  if (difDias(m.ovulacao, iso) > 0) return 'lutea';
+  return 'folicular';
+}
+function resumoAtual(cfg, iso){
+  iso = iso || hojeISO();
+  var c = normalizar(cfg);
+  if (!c.ultimaMenstruacao) return null;
+  var inicio = inicioDoCiclo(c, iso);
+  var m = marcosDoCiclo(c, inicio);
+  var dia = difDias(inicio, iso) + 1;
+  return {
+    diaDoCiclo: dia,
+    duracaoCiclo: c.duracaoCiclo,
+    progresso: Math.min(1, Math.max(0, (dia-1)/c.duracaoCiclo)),
+    fase: faseDoDia(c, iso),
+    diasParaMenstruacao: difDias(iso, m.proximaMenstruacao),
+    proximaMenstruacao: m.proximaMenstruacao,
+    marcos: m
+  };
+}
+function mapaDoMes(cfg, ano, mes){
+  var mapa = {}, c = normalizar(cfg);
+  if (!c.ultimaMenstruacao) return mapa;
+  var total = new Date(ano, mes+1, 0).getDate();
+  for (var d = 1; d <= total; d++){
+    var iso = paraISO(new Date(ano, mes, d));
+    if (difDias(c.ultimaMenstruacao, iso) < 0) continue;
+    var f = faseDoDia(c, iso);
+    if (f && f !== 'folicular' && f !== 'lutea') mapa[iso] = f;
+  }
+  return mapa;
+}
+function mediaDosCiclos(ciclos){
+  var inicios = (ciclos||[]).map(function(c){ return c.startDate; }).filter(Boolean).sort().slice(-7);
+  if (inicios.length < 2) return null;
+  var ints = [];
+  for (var i = 1; i < inicios.length; i++){
+    var d = difDias(inicios[i-1], inicios[i]);
+    if (d >= 21 && d <= 45) ints.push(d);
+  }
+  if (!ints.length) return null;
+  return Math.round(ints.reduce(function(a,b){ return a+b; },0) / ints.length);
+}
+
+/* =========================================================
+   4. FIRESTORE
+   Estrutura idêntica às regras de segurança.
+   ========================================================= */
+function uid(){ return auth.currentUser.uid; }
+var DB = {
+  perfil: function(){ return db.collection('users').doc(uid()); },
+  ciclo: function(){ return db.collection('users').doc(uid()).collection('settings').doc('ciclo'); },
+  notif: function(){ return db.collection('users').doc(uid()).collection('notificationSettings').doc('geral'); },
+  ciclos: function(){ return db.collection('users').doc(uid()).collection('cycles'); },
+  diarios: function(){ return db.collection('users').doc(uid()).collection('dailyRecords'); },
+  ferteis: function(){ return db.collection('users').doc(uid()).collection('fertilityRecords'); }
+};
+
+/* O Firestore aplica a escrita no cache local na hora, mas a promessa só
+   resolve quando o servidor confirma. Sem internet isso nunca chega, então
+   não adianta esperar: devolvemos false e o app avisa que salvou local. */
+function confirmarEscrita(operacao){
+  if (!navigator.onLine) return Promise.resolve(false);
+  return new Promise(function(resolver, rejeitar){
+    var respondeu = false;
+    operacao.then(function(){ respondeu = true; resolver(true); },
+                  function(e){ respondeu = true; rejeitar(e); });
+    setTimeout(function(){ if (!respondeu) resolver(false); }, 6000);
+  });
+}
+function avisarSalvo(confirmado, textoOnline){
+  avisar(confirmado ? (textoOnline || 'Registro salvo.')
+                    : 'Salvo neste aparelho. Vai sincronizar quando a internet voltar.');
+}
+
+/* O perfil aceita SOMENTE estas 5 chaves — qualquer campo extra é recusado pelas regras. */
+function salvarPerfil(dados){
+  return DB.perfil().get().then(function(s){
+    return confirmarEscrita(DB.perfil().set({
+      firstName: String(dados.firstName).trim().slice(0,59),
+      lastName: dados.lastName ? String(dados.lastName).trim() : null,
+      birthDate: String(dados.birthDate),
+      createdAt: s.exists ? s.data().createdAt : new Date().toISOString(),
+      isAnonymous: !!dados.isAnonymous
+    }));
+  });
+}
+function lerPerfil(){ return DB.perfil().get().then(function(s){ return s.exists ? s.data() : null; }); }
+function salvarConfigCiclo(cfg){
+  return confirmarEscrita(DB.ciclo().set({
+    ultimaMenstruacao: cfg.ultimaMenstruacao,
+    duracaoCiclo: Number(cfg.duracaoCiclo),
+    duracaoMenstruacao: Number(cfg.duracaoMenstruacao),
+    ajusteAutomatico: cfg.ajusteAutomatico !== false,
+    atualizadoEm: new Date().toISOString()
+  }, {merge:true}));
+}
+function lerConfigCiclo(){ return DB.ciclo().get().then(function(s){ return s.exists ? s.data() : null; }); }
+function registrarCiclo(inicio){
+  return confirmarEscrita(DB.ciclos().doc(inicio).set({startDate:inicio, endDate:null, criadoEm:new Date().toISOString()}, {merge:true}));
+}
+function listarCiclos(){
+  return DB.ciclos().orderBy('startDate','desc').limit(24).get().then(function(s){
+    return s.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); }).reverse();
+  });
+}
+function salvarDiario(data, dados){
+  return confirmarEscrita(DB.diarios().doc(data).set(Object.assign({date:data, atualizadoEm:new Date().toISOString()}, dados), {merge:true}));
+}
+function lerDiario(data){ return DB.diarios().doc(data).get().then(function(s){ return s.exists ? s.data() : null; }); }
+function listarDiarios(){
+  return DB.diarios().orderBy('date','desc').limit(60).get().then(function(s){
+    return s.docs.map(function(d){ return d.data(); });
+  });
+}
+function salvarFertilidade(data, dados){
+  return confirmarEscrita(DB.ferteis().doc(data).set(Object.assign({date:data, atualizadoEm:new Date().toISOString()}, dados), {merge:true}));
+}
+function lerFertilidade(data){ return DB.ferteis().doc(data).get().then(function(s){ return s.exists ? s.data() : null; }); }
+function lerNotificacoes(){
+  return DB.notif().get().then(function(s){
+    return s.exists ? s.data() : {antesMenstruacao:true, janelaFertil:true, registroDiario:false};
+  });
+}
+function salvarNotificacoes(p){ return confirmarEscrita(DB.notif().set(Object.assign({}, p, {atualizadoEm:new Date().toISOString()}), {merge:true})); }
+
+function excluirTudo(){
+  var cols = [DB.ciclos(), DB.diarios(), DB.ferteis()];
+  return Promise.all(cols.map(function(c){
+    return c.get().then(function(s){ return Promise.all(s.docs.map(function(d){ return d.ref.delete(); })); });
+  })).then(function(){
+    return Promise.all([DB.ciclo().delete().catch(function(){}), DB.notif().delete().catch(function(){})]);
+  }).then(function(){ return DB.perfil().delete(); });
+}
+
+function mensagemErro(e){
+  var mapa = {
+    'auth/invalid-email':'Esse e-mail não parece válido.',
+    'auth/weak-password':'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/email-already-in-use':'Já existe uma conta com esse e-mail. Entre por ele.',
+    'auth/invalid-credential':'E-mail ou senha não conferem.',
+    'auth/wrong-password':'E-mail ou senha não conferem.',
+    'auth/user-not-found':'Não encontramos uma conta com esse e-mail.',
+    'auth/too-many-requests':'Muitas tentativas seguidas. Espere alguns minutos.',
+    'auth/network-request-failed':'Sem conexão. Verifique sua internet.',
+    'auth/operation-not-allowed':'Esse tipo de acesso ainda não foi liberado no Firebase.',
+    'auth/unauthorized-domain':'Este endereço não está autorizado no Firebase Authentication.',
+    'auth/requires-recent-login':'Por segurança, entre de novo antes de excluir a conta.',
+    'permission-denied':'As regras do Firestore recusaram esta operação.'
+  };
+  return mapa[e && e.code] || 'Não foi possível concluir. Tente de novo em instantes.';
+}
+
+/* =========================================================
+   5. ESTADO E NAVEGAÇÃO
+   ========================================================= */
+var estado = { perfil:null, config:null, ciclos:[], mesVisivel:new Date(), dataRegistro:hojeISO() };
+var tela = $('#tela'), topo = $('#topo'), nav = $('#nav');
+var TELAS = {};
+
+var ICONES = {
+  inicio:'M3 10.5 12 3l9 7.5V21H3z',
+  calendario:'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
+  registros:'M6 3h12v18H6zM9 8h6M9 12h6M9 16h4',
+  conteudo:'M4 5h7v15H4zM13 5h7v15h-7',
+  mais:'M4 7h16M4 12h16M4 17h16'
+};
+function icone(n){
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" '+
+    'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="'+ICONES[n]+'"/></svg>';
+}
+var ABAS = [
+  {id:'inicio',rotulo:'Início'}, {id:'calendario',rotulo:'Calendário'},
+  {id:'registros',rotulo:'Registros'}, {id:'conteudo',rotulo:'Conteúdo'}, {id:'mais',rotulo:'Mais'}
+];
+function montarNav(){
+  nav.innerHTML = '';
+  ABAS.forEach(function(a){
+    var b = el('button',{class:'nav-item',
+      html:'<span class="glifo">'+icone(a.id)+'</span><span>'+a.rotulo+'</span>',
+      onclick:function(){ irPara(a.id); }});
+    b.dataset.rota = a.id;
+    nav.append(b);
+  });
+}
+function irPara(rota){ vibrar(); location.hash = rota; }
+
+function cabecalho(op){
+  topo.innerHTML = '';
+  topo.append(
+    op.voltar ? el('button',{class:'btn-icone','aria-label':'Voltar',html:'&#8592;',
+                  onclick:function(){ irPara(op.voltar); }})
+              : el('div',{style:'width:44px'}),
+    el('div',{class:'centro', html: op.saudacao
+      ? '<div class="saudacao">'+op.saudacao+'</div><div class="subtitulo">Que bom te ver por aqui.</div>'
+      : '<div class="saudacao">'+(op.titulo||'')+'</div>'}),
+    el('div',{style:'width:44px'})
+  );
+}
+
+function renderizar(){
+  var rota = (location.hash || '#inicio').replace('#','');
+  var fn = TELAS[rota] || TELAS.inicio;
+  Array.prototype.forEach.call(nav.querySelectorAll('.nav-item'), function(b){
+    var ativa = b.dataset.rota === rota
+      || (['registrar-dia','fertilidade','bem-estar','historico'].indexOf(rota) !== -1 && b.dataset.rota === 'registros')
+      || (['meus-ciclos','notificacoes','privacidade','termos'].indexOf(rota) !== -1 && b.dataset.rota === 'mais');
+    b.setAttribute('aria-current', ativa ? 'page' : 'false');
+  });
+  tela.innerHTML = '<div class="carregando"><div class="giro"></div></div>';
+  Promise.resolve(fn()).catch(function(e){
+    console.error(e);
+    tela.innerHTML = '';
+    tela.append(el('div',{class:'vazio',html:'<span class="glifo">&#9888;</span>'+mensagemErro(e)}));
+  });
+}
+
+/* =========================================================
+   6. TELA DE ENTRADA (sem sessão)
+   ========================================================= */
+function telaEntrada(){
+  topo.innerHTML = '';
+  nav.classList.add('oculto');
+  tela.innerHTML = '';
+  tela.style.padding = '0';
+
+  var v = el('div',{class:'painel tela'});
+  v.append(el('div',{class:'painel-topo',
+    html:'<h1>Ciclo Femme</h1><p>Acompanhe seu ciclo do seu jeito.</p>'}));
+
+  var abaEntrar = el('button',{class:'aba',role:'tab','aria-selected':'true',texto:'Entrar'});
+  var abaCriar  = el('button',{class:'aba',role:'tab','aria-selected':'false',texto:'Criar conta'});
+  v.append(el('div',{class:'abas',role:'tablist'},[abaEntrar, abaCriar]));
+
+  var email = el('input',{type:'email',id:'email',autocomplete:'email',placeholder:'voce@email.com'});
+  var senha = el('input',{type:'password',id:'senha',autocomplete:'current-password',placeholder:'Pelo menos 6 caracteres'});
+  v.append(campo('E-mail', email), campo('Senha', senha, 'Use ao menos 6 caracteres.'));
+
+  var erro = el('div',{class:'campo erro oculto',role:'alert'});
+  var btn  = el('button',{class:'btn',texto:'Entrar'});
+  v.append(erro, btn);
+
+  var esqueci = el('button',{class:'btn-texto',texto:'Esqueci minha senha'});
+  v.append(el('div',{style:'text-align:center;margin-top:var(--sp-3)'}, esqueci));
+  v.append(el('div',{class:'divisor',texto:'ou'}));
+
+  var anon = el('button',{class:'btn btn-secundario',texto:'Usar sem criar conta'});
+  v.append(anon);
+  v.append(el('p',{class:'texto-suave',style:'text-align:center;margin-top:var(--sp-3)',
+    texto:'Sem conta, seus dados ficam ligados a este acesso. Você pode criar uma conta depois para não perdê-los.'}));
+  v.append(el('p',{class:'aviso-rodape',texto:
+    'O Ciclo Femme é uma ferramenta de acompanhamento. Não é um dispositivo médico, não faz diagnóstico e não substitui consultas, exames ou orientação de profissionais de saúde.'}));
+  tela.append(v);
+
+  var modo = 'entrar';
+  function definirModo(m){
+    modo = m;
+    abaEntrar.setAttribute('aria-selected', String(m === 'entrar'));
+    abaCriar.setAttribute('aria-selected', String(m === 'criar'));
+    btn.textContent = m === 'entrar' ? 'Entrar' : 'Criar conta';
+    erro.classList.add('oculto');
+  }
+  abaEntrar.onclick = function(){ definirModo('entrar'); };
+  abaCriar.onclick  = function(){ definirModo('criar'); };
+  function mostrarErro(m){ erro.textContent = m; erro.classList.remove('oculto'); }
+
+  btn.onclick = function(){
+    var e = email.value.trim(), s = senha.value;
+    if (!e) return mostrarErro('Digite seu e-mail.');
+    if (s.length < 6) return mostrarErro('A senha precisa ter pelo menos 6 caracteres.');
+    ocupar(btn, true);
+    var p = modo === 'entrar'
+      ? auth.signInWithEmailAndPassword(e, s)
+      : auth.createUserWithEmailAndPassword(e, s);
+    p.catch(function(err){
+      mostrarErro(mensagemErro(err));
+      ocupar(btn, false, modo === 'entrar' ? 'Entrar' : 'Criar conta');
+    });
+  };
+  anon.onclick = function(){
+    ocupar(anon, true);
+    auth.signInAnonymously().catch(function(err){
+      mostrarErro(mensagemErro(err));
+      ocupar(anon, false, 'Usar sem criar conta');
+    });
+  };
+  esqueci.onclick = function(){
+    var e = email.value.trim();
+    if (!e) return mostrarErro('Digite seu e-mail para receber o link de redefinição.');
+    auth.sendPasswordResetEmail(e)
+      .then(function(){ avisar('Link enviado. Confira seu e-mail.'); })
+      .catch(function(err){ mostrarErro(mensagemErro(err)); });
+  };
+}
+
+function campo(rotulo, controle, ajuda){
+  var id = controle.id || ('c' + Math.random().toString(36).slice(2,8));
+  controle.id = id;
+  var c = el('div',{class:'campo'});
+  c.append(el('label',{for:id,texto:rotulo}), controle);
+  if (ajuda) c.append(el('div',{class:'ajuda',texto:ajuda}));
+  return c;
+}
+function opt(v,r){ return el('option',{value:v,texto:r}); }
+function linhaAlternador(rotulo, btn){
+  var l = el('div',{class:'linha-alternador'});
+  l.append(el('span',{class:'rotulo',texto:rotulo}), btn);
+  return l;
+}
+
+/* =========================================================
+   7. ONBOARDING
+   ========================================================= */
+function telaOnboarding(){
+  nav.classList.add('oculto');
+  tela.style.padding = 'var(--sp-5)';
+  var etapa = 1, aceitou = false, TOTAL = 3;
+
+  var barra = el('div',{class:'barra-etapas'});
+  for (var i = 0; i < TOTAL; i++) barra.append(document.createElement('span'));
+  topo.innerHTML = '';
+  topo.append(
+    el('button',{class:'btn-icone','aria-label':'Voltar',html:'&#8592;',onclick:function(){
+      if (etapa === 1) return auth.signOut();
+      etapa--; desenhar();
+    }}), barra, el('div',{style:'width:44px'})
+  );
+
+  var nome = el('input',{type:'text',maxlength:'40',placeholder:'Seu primeiro nome'});
+  var sobrenome = el('input',{type:'text',maxlength:'60',placeholder:'Se quiser informar'});
+  var nascimento = el('input',{type:'date'});
+  var ultima = el('input',{type:'date'});
+  var dCiclo = el('input',{type:'number',min:'21',max:'45',value:'28',inputmode:'numeric'});
+  var dMenst = el('input',{type:'number',min:'1',max:'10',value:'5',inputmode:'numeric'});
+  var btnAceite = el('button',{class:'alternador',type:'button'});
+  alternador(btnAceite, false, function(v){ aceitou = v; });
+
+  var s1 = el('section',{class:'tela'});
+  s1.append(
+    el('h1',{style:'font-size:var(--t-display);font-weight:200;color:var(--rosa-900)',texto:'Olá!'}),
+    el('p',{style:'font-family:var(--font-display);font-size:var(--t-h1);color:var(--tinta-700);margin-bottom:var(--sp-3)',texto:'Vamos começar?'}),
+    el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-6)',texto:'Para personalizar sua experiência, precisamos de algumas informações sobre você.'}),
+    campo('Como quer ser chamada', nome),
+    campo('Sobrenome (opcional)', sobrenome),
+    campo('Data de nascimento', nascimento, 'Usada só para ajustar as estimativas à sua fase de vida.')
+  );
+
+  var s2 = el('section',{class:'tela oculto'});
+  s2.append(
+    el('h1',{style:'font-size:var(--t-display);font-weight:200;color:var(--rosa-900)',texto:'Seu ciclo'}),
+    el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-6)',texto:'Quanto mais próximo do real, melhores ficam as estimativas. Dá para ajustar tudo depois.'}),
+    campo('Primeiro dia da última menstruação', ultima, 'Se não lembrar exatamente, escolha a data mais próxima.'),
+    campo('Duração média do ciclo (dias)', dCiclo, 'Entre 21 e 45 dias.'),
+    campo('Duração média da menstruação (dias)', dMenst, 'Entre 1 e 10 dias.')
+  );
+
+  var s3 = el('section',{class:'tela oculto'});
+  s3.append(
+    el('h1',{style:'font-size:var(--t-display);font-weight:200;color:var(--rosa-900)',texto:'Antes de entrar'}),
+    el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-6)',texto:'Três coisas que valem ser ditas com clareza.'}),
+    el('div',{class:'aviso',style:'margin-bottom:var(--sp-4)',html:
+      '<span class="glifo">&#9432;</span><div><strong>Tudo aqui é estimativa.</strong><br>As previsões vêm do método do calendário e podem errar, principalmente em ciclos irregulares.</div>'}),
+    el('div',{class:'aviso',style:'margin-bottom:var(--sp-4)',html:
+      '<span class="glifo">&#9888;</span><div><strong>Não é método contraceptivo.</strong><br>As informações sobre período fértil e ovulação são estimativas e podem apresentar erros. Não utilize o aplicativo para evitar uma gravidez. Para prevenção, utilize métodos contraceptivos adequados e procure orientação de um profissional de saúde.</div>'}),
+    el('div',{class:'aviso',html:
+      '<span class="glifo">&#9825;</span><div><strong>Não substitui seu médico.</strong><br>O Ciclo Femme não é um dispositivo médico e não faz diagnóstico. Em caso de sintomas importantes, dor fora do comum, sangramento atípico ou qualquer dúvida de saúde, procure um profissional.</div>'}),
+    el('div',{style:'margin-top:var(--sp-6)'}, linhaAlternador('Li e entendi como o app funciona.', btnAceite))
+  );
+
+  var erro = el('div',{class:'campo erro oculto',role:'alert'});
+  var btn = el('button',{class:'btn',texto:'Continuar',style:'margin-top:var(--sp-5)'});
+
+  tela.innerHTML = '';
+  tela.append(s1, s2, s3, erro, btn);
+
+  function desenhar(){
+    s1.classList.toggle('oculto', etapa !== 1);
+    s2.classList.toggle('oculto', etapa !== 2);
+    s3.classList.toggle('oculto', etapa !== 3);
+    Array.prototype.forEach.call(barra.children, function(sp,i){ sp.classList.toggle('feito', i < etapa); });
+    btn.textContent = etapa === TOTAL ? 'Entrar no Ciclo Femme' : 'Continuar';
+    erro.classList.add('oculto');
+    window.scrollTo(0,0);
+  }
+  desenhar();
+
+  function validar(){
+    if (etapa === 1){
+      if (!nome.value.trim()) return 'Escreva como quer ser chamada.';
+      if (!nascimento.value) return 'Informe sua data de nascimento.';
+      if (difDias(nascimento.value, hojeISO()) < 0) return 'Essa data ainda não chegou. Confira o ano.';
+    }
+    if (etapa === 2){
+      if (!ultima.value) return 'Informe o primeiro dia da última menstruação.';
+      if (difDias(ultima.value, hojeISO()) < 0) return 'Essa data é futura. Escolha um dia que já passou.';
+      if (difDias(ultima.value, hojeISO()) > 180) return 'Essa data é muito antiga para gerar uma estimativa útil.';
+      var dc = Number(dCiclo.value), dm = Number(dMenst.value);
+      if (!(dc >= 21 && dc <= 45)) return 'A duração do ciclo deve ficar entre 21 e 45 dias.';
+      if (!(dm >= 1 && dm <= 10)) return 'A duração da menstruação deve ficar entre 1 e 10 dias.';
+      if (dm >= dc) return 'A menstruação não pode durar o ciclo inteiro. Revise os dois números.';
+    }
+    if (etapa === 3 && !aceitou) return 'Confirme que leu como o app funciona para continuar.';
+    return null;
+  }
+
+  btn.onclick = function(){
+    var problema = validar();
+    if (problema){ erro.textContent = problema; erro.classList.remove('oculto'); return; }
+    if (etapa < TOTAL){ etapa++; return desenhar(); }
+    ocupar(btn, true);
+    salvarPerfil({
+      firstName: nome.value.trim(),
+      lastName: sobrenome.value.trim() || null,
+      birthDate: nascimento.value,
+      isAnonymous: !!auth.currentUser.isAnonymous
+    }).then(function(){
+      return salvarConfigCiclo({
+        ultimaMenstruacao: ultima.value,
+        duracaoCiclo: Number(dCiclo.value),
+        duracaoMenstruacao: Number(dMenst.value),
+        ajusteAutomatico: true
+      });
+    }).then(function(){ return registrarCiclo(ultima.value); })
+      .then(function(){ return iniciarApp(); })
+      .catch(function(e){
+        console.error(e);
+        erro.textContent = mensagemErro(e);
+        erro.classList.remove('oculto');
+        ocupar(btn, false, 'Entrar no Ciclo Femme');
+      });
+  };
+}
+
+/* =========================================================
+   8. TELAS DO APP
+   ========================================================= */
+TELAS.inicio = function(){
+  cabecalho({saudacao: 'Olá, ' + ((estado.perfil && estado.perfil.firstName) || 'tudo bem') + '!'});
+  var r = resumoAtual(estado.config);
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+
+  if (!r){
+    v.append(el('div',{class:'vazio',html:'<span class="glifo">&#9675;</span>Ainda não temos a data da sua última menstruação.'}));
+    v.append(el('button',{class:'btn',texto:'Informar meus dados',onclick:function(){ irPara('meus-ciclos'); }}));
+    return tela.append(v);
+  }
+
+  var raio = 100, circ = 2*Math.PI*raio, offset = circ*(1-r.progresso), faltam = r.diasParaMenstruacao;
+  v.append(el('div',{class:'anel-envoltorio',html:
+    '<div style="position:relative">'+
+      '<svg class="anel" viewBox="0 0 240 240"><defs><linearGradient id="gradRosa" x1="0" y1="0" x2="1" y2="1">'+
+      '<stop offset="0%" stop-color="#E79DAF"/><stop offset="55%" stop-color="#D1506B"/>'+
+      '<stop offset="100%" stop-color="#8E63C4"/></linearGradient></defs>'+
+      '<circle class="trilho" cx="120" cy="120" r="'+raio+'"/>'+
+      '<circle class="progresso" cx="120" cy="120" r="'+raio+'" stroke-dasharray="'+circ+'" '+
+      'stroke-dashoffset="'+offset+'" transform="rotate(-90 120 120)"/></svg>'+
+      '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center">'+
+        '<div class="rotulo">'+(faltam === 0 ? 'Sua menstruação pode começar hoje' : 'Sua próxima menstruação em')+'</div>'+
+        (faltam === 0 ? '' : '<div class="numero">'+faltam+' '+(faltam===1?'dia':'dias')+'</div>')+
+        '<div class="previsao">Estimativa: '+formatarData(r.proximaMenstruacao)+'</div>'+
+      '</div></div>'}));
+
+  v.append(el('p',{class:'texto-suave',style:'text-align:center',
+    texto:'Dia '+r.diaDoCiclo+' de um ciclo de '+r.duracaoCiclo+' dias.'}));
+
+  var f = FASES[r.fase];
+  v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-5)',
+    onclick:function(){ irPara('conteudo'); },
+    html:'<span style="width:26px;height:26px;border-radius:50%;background:'+f.cor+';flex:none"></span>'+
+      '<span><span class="texto-suave" style="display:block">Fase atual</span><strong>'+f.nome+'</strong></span>'+
+      '<span class="seta">&#8250;</span>'}));
+
+  var m = r.marcos;
+  var faixa = el('div',{class:'faixa-fases'});
+  faixa.append(
+    pilula('Período fértil', formatarData(m.inicioFertil,{day:'numeric'})+'–'+formatarData(m.fimFertil), 'var(--verde-500)'),
+    pilula('Ovulação', formatarData(m.ovulacao), 'var(--lilas-500)'),
+    pilula('TPM', 'a partir de '+formatarData(m.inicioTPM,{day:'numeric'}), 'var(--lilas-300)')
+  );
+  v.append(faixa);
+
+  v.append(el('button',{class:'btn',style:'margin-top:var(--sp-6)',texto:'Registrar hoje',
+    onclick:function(){ estado.dataRegistro = hojeISO(); irPara('registrar-dia'); }}));
+  v.append(el('p',{class:'aviso-rodape',texto:
+    'Todas as datas acima são estimativas calculadas a partir dos seus registros e podem não corresponder ao ciclo real.'}));
+  tela.append(v);
+};
+function pilula(nome, detalhe, cor){
+  return el('div',{class:'pilula-fase',html:
+    '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+cor+'"></span>'+
+    '<span class="nome">'+nome+'</span>'+detalhe});
+}
+
+TELAS.calendario = function(){
+  cabecalho({titulo:'Calendário', voltar:'inicio'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+  v.append(desenharCalendario());
+  var r = resumoAtual(estado.config);
+  if (r){
+    v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-4)',
+      onclick:function(){ irPara('meus-ciclos'); },
+      html:'<span style="width:26px;height:26px;border-radius:50%;background:var(--rosa-500);flex:none"></span>'+
+        '<span><strong>'+formatarData(r.proximaMenstruacao)+'</strong><span class="texto-suave" style="display:block">Estimativa da sua próxima menstruação</span></span>'+
+        '<span class="seta">&#8250;</span>'}));
+  }
+  v.append(el('p',{class:'aviso-rodape',texto:
+    'As marcações do calendário são estimativas e não servem como método contraceptivo.'}));
+  tela.append(v);
+};
+
+function desenharCalendario(){
+  var wrap = el('div',{class:'calendario'});
+  var ref = estado.mesVisivel, ano = ref.getFullYear(), mes = ref.getMonth();
+  var cab = el('div',{class:'calendario-cabecalho'});
+  cab.append(
+    el('button',{class:'btn-icone','aria-label':'Mês anterior',html:'&#8249;',
+      onclick:function(){ estado.mesVisivel = new Date(ano, mes-1, 1); renderizar(); }}),
+    el('div',{class:'calendario-mes',texto:ref.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}),
+    el('button',{class:'btn-icone','aria-label':'Próximo mês',html:'&#8250;',
+      onclick:function(){ estado.mesVisivel = new Date(ano, mes+1, 1); renderizar(); }})
+  );
+  wrap.append(cab);
+
+  var grade = el('div',{class:'calendario-grade'});
+  ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].forEach(function(d){
+    grade.append(el('div',{class:'calendario-dia-semana',texto:d}));
+  });
+  var desloc = (new Date(ano, mes, 1).getDay() + 6) % 7;
+  var total = new Date(ano, mes+1, 0).getDate();
+  var mapa = mapaDoMes(estado.config, ano, mes), hoje = hojeISO();
+  for (var i = 0; i < desloc; i++) grade.append(el('div',{class:'dia vazio'}));
+  for (var d = 1; d <= total; d++){
+    (function(dia){
+      var iso = paraISO(new Date(ano, mes, dia));
+      var fase = mapa[iso];
+      var cls = 'dia' + (fase ? ' ' + FASES[fase].classe : '') + (iso === hoje ? ' hoje' : '');
+      grade.append(el('button',{class:cls,texto:String(dia),
+        onclick:function(){ estado.dataRegistro = iso; irPara('registrar-dia'); }}));
+    })(d);
+  }
+  wrap.append(grade);
+
+  var leg = el('div',{class:'legenda'});
+  ['menstruacao','fertil','ovulacao','tpm'].forEach(function(k){
+    leg.append(el('div',{class:'legenda-item',html:
+      '<span class="legenda-cor" style="background:'+FASES[k].cor+'"></span>'+FASES[k].nome}));
+  });
+  wrap.append(leg);
+  return wrap;
+}
+
+TELAS.registros = function(){
+  cabecalho({titulo:'Registros', voltar:'inicio'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+  v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-4)',
+    texto:'Registrando ' + (estado.dataRegistro === hojeISO() ? 'hoje' : formatarDataLonga(estado.dataRegistro)) + '.'}));
+  [['registrar-dia','Registrar do dia','Fluxo, humor e sintomas','var(--rosa-500)'],
+   ['fertilidade','Fertilidade','Temperatura, muco e testes','var(--verde-500)'],
+   ['bem-estar','Humor e bem-estar','Sono, energia, estresse e mais','var(--lilas-500)'],
+   ['historico','Histórico','O que você já registrou','var(--ouro-500)']
+  ].forEach(function(g){
+    v.append(el('button',{class:'cartao-link',style:'margin-bottom:var(--sp-3)',
+      onclick:function(){ irPara(g[0]); },
+      html:'<span style="width:10px;height:34px;border-radius:var(--r-pill);background:'+g[3]+';flex:none"></span>'+
+        '<span><strong>'+g[1]+'</strong><span class="texto-suave" style="display:block">'+g[2]+'</span></span>'+
+        '<span class="seta">&#8250;</span>'}));
+  });
+  tela.append(v);
+};
+
+var FLUXOS = [['leve','Leve','&#9679;'],['moderado','Moderado','&#10687;'],
+              ['intenso','Intenso','&#9899;'],['muito-intenso','Muito intenso','&#9724;']];
+var HUMORES = [['muito-bem','Muito bem','&#128522;'],['bem','Bem','&#128578;'],
+               ['normal','Normal','&#128528;'],['triste','Triste','&#128577;']];
+var SINTOMAS = [['colicas','Cólicas'],['dor-cabeca','Dor de cabeça'],['inchaco','Inchaço'],
+  ['acne','Acne'],['seios-doloridos','Seios doloridos'],['cansaco','Cansaço'],
+  ['nausea','Náusea'],['dor-lombar','Dor lombar'],['intestino','Intestino alterado']];
+
+function gradeOpcoes(lista){
+  var g = el('div',{class:'grade-opcoes'});
+  lista.forEach(function(o){
+    var b = el('button',{type:'button',class:'opcao','aria-pressed':'false',
+      html:'<span class="glifo">'+o[2]+'</span><span>'+o[1]+'</span>'});
+    b.dataset.valor = o[0];
+    g.append(b);
+  });
+  return g;
+}
+
+TELAS['registrar-dia'] = function(){
+  cabecalho({titulo:'Registrar do dia', voltar:'registros'});
+  var data = estado.dataRegistro;
+  return lerDiario(data).then(function(salvo){
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+    v.append(el('p',{class:'texto-suave',style:'text-align:center;margin-bottom:var(--sp-5)',texto:formatarDataLonga(data)}));
+
+    v.append(el('h2',{class:'secao-titulo',texto:'Fluxo menstrual'}));
+    var gF = gradeOpcoes(FLUXOS); v.append(gF);
+    v.append(el('h2',{class:'secao-titulo',texto:'Como você está hoje?'}));
+    var gH = gradeOpcoes(HUMORES); v.append(gH);
+    v.append(el('h2',{class:'secao-titulo',texto:'Sintomas'}));
+    var gS = el('div',{class:'grade-opcoes col-3'});
+    SINTOMAS.forEach(function(s){
+      var b = el('button',{type:'button',class:'opcao','aria-pressed':'false',html:'<span>'+s[1]+'</span>'});
+      b.dataset.valor = s[0];
+      gS.append(b);
+    });
+    v.append(gS);
+
+    v.append(el('h2',{class:'secao-titulo',texto:'Observações'}));
+    var nota = el('textarea',{placeholder:'Escreva algo sobre o seu dia…',maxlength:'600'});
+    v.append(el('div',{class:'campo'}, nota));
+
+    var btn = el('button',{class:'btn',texto:'Salvar registro'});
+    v.append(btn);
+    v.append(el('p',{class:'aviso-rodape',texto:
+      'Sintomas registrados aqui não são avaliados clinicamente. Em caso de dor forte, sangramento fora do comum ou qualquer dúvida, procure um profissional de saúde.'}));
+    tela.append(v);
+
+    grupoSelecao(gF,false); grupoSelecao(gH,false); grupoSelecao(gS,true);
+    if (salvo){
+      marcarSelecao(gF, salvo.flow); marcarSelecao(gH, salvo.mood);
+      marcarSelecao(gS, salvo.symptoms || []); nota.value = salvo.notes || '';
+    }
+
+    btn.onclick = function(){
+      ocupar(btn, true);
+      var fluxo = selecionados(gF,false);
+      salvarDiario(data, {
+        flow: fluxo, mood: selecionados(gH,false),
+        symptoms: selecionados(gS,true), notes: nota.value.trim() || null
+      }).then(function(ok){
+          return Promise.resolve(fluxo ? talvezNovoCiclo(data) : null).then(function(){ return ok; });
+        })
+        .then(function(ok){ avisarSalvo(ok); irPara('inicio'); })
+        .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar registro'); });
+    };
+  });
+};
+
+/* Marcar fluxo num dia distante do último início vira um novo ciclo. */
+function talvezNovoCiclo(data){
+  var cfg = estado.config;
+  if (!cfg || !cfg.ultimaMenstruacao) return Promise.resolve();
+  if (difDias(cfg.ultimaMenstruacao, data) < 18) return Promise.resolve();
+  if (difDias(data, hojeISO()) < 0) return Promise.resolve();
+  return registrarCiclo(data).then(listarCiclos).then(function(cs){
+    estado.ciclos = cs;
+    var media = cfg.ajusteAutomatico !== false ? mediaDosCiclos(cs) : null;
+    var novo = {
+      ultimaMenstruacao: data,
+      duracaoCiclo: media || cfg.duracaoCiclo,
+      duracaoMenstruacao: cfg.duracaoMenstruacao,
+      ajusteAutomatico: cfg.ajusteAutomatico
+    };
+    estado.config = normalizar(novo);
+    avisar('Novo ciclo registrado a partir desta data.');
+    return salvarConfigCiclo(novo);
+  });
+}
+
+TELAS.fertilidade = function(){
+  cabecalho({titulo:'Fertilidade', voltar:'registros'});
+  var data = estado.dataRegistro;
+  return lerFertilidade(data).then(function(salvo){
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+    v.append(el('p',{class:'texto-suave',style:'text-align:center;margin-bottom:var(--sp-5)',texto:formatarDataLonga(data)}));
+
+    var bRelacao = el('button',{class:'alternador',type:'button'});
+    var bPreserv = el('button',{class:'alternador',type:'button'});
+    var cartao = el('div',{class:'cartao'});
+    cartao.append(linhaAlternador('Relação sexual', bRelacao), linhaAlternador('Uso de preservativo', bPreserv));
+    v.append(cartao);
+
+    var sContra = el('select',{},[opt('','Selecione'),opt('nenhum','Nenhum'),opt('pilula','Pílula'),
+      opt('diu','DIU'),opt('injecao','Injeção'),opt('implante','Implante'),opt('adesivo','Adesivo'),
+      opt('anel','Anel'),opt('preservativo','Preservativo'),opt('outro','Outro')]);
+    var iTemp = el('input',{type:'number',step:'0.01',min:'34',max:'42',placeholder:'Ex.: 36,5',inputmode:'decimal'});
+    var sMuco = el('select',{},[opt('','Selecione'),opt('seco','Seco'),opt('pegajoso','Pegajoso'),
+      opt('cremoso','Cremoso'),opt('aquoso','Aquoso'),opt('clara-de-ovo','Clara de ovo')]);
+    var sTeste = el('select',{},[opt('','Selecione'),opt('nao-fiz','Não fiz'),opt('negativo','Negativo'),opt('positivo','Positivo')]);
+
+    v.append(campo('Contraceptivo em uso', sContra));
+    v.append(campo('Temperatura basal (°C)', iTemp, 'Meça sempre no mesmo horário, antes de levantar da cama.'));
+    v.append(campo('Muco cervical', sMuco));
+    v.append(campo('Teste de ovulação', sTeste));
+
+    v.append(el('div',{class:'aviso',style:'margin:var(--sp-5) 0',html:
+      '<span class="glifo">&#9888;</span><div><strong>Importante</strong><br>'+
+      'O Ciclo Femme não é um método contraceptivo e não deve ser utilizado para evitar uma gravidez. '+
+      'As informações sobre período fértil e ovulação são estimativas e podem apresentar erros. '+
+      'Para prevenção, utilize métodos contraceptivos adequados e procure orientação de um profissional de saúde.</div>'}));
+
+    var btn = el('button',{class:'btn',texto:'Salvar registro'});
+    v.append(btn);
+    tela.append(v);
+
+    alternador(bRelacao, !!(salvo && salvo.sex));
+    alternador(bPreserv, !!(salvo && salvo.condom));
+    if (salvo){
+      sContra.value = salvo.contraceptive || '';
+      iTemp.value = salvo.basalTemp != null ? salvo.basalTemp : '';
+      sMuco.value = salvo.cervicalMucus || '';
+      sTeste.value = salvo.ovulationTest || '';
+    }
+
+    btn.onclick = function(){
+      ocupar(btn, true);
+      salvarFertilidade(data, {
+        sex: ligado(bRelacao), condom: ligado(bPreserv),
+        contraceptive: sContra.value || null,
+        basalTemp: iTemp.value ? Number(iTemp.value) : null,
+        cervicalMucus: sMuco.value || null,
+        ovulationTest: sTeste.value || null
+      }).then(function(ok){ avisarSalvo(ok); irPara('registros'); })
+        .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar registro'); });
+    };
+  });
+};
+
+var ESCALAS = [['sleep','Sono','&#127769;'],['energy','Energia','&#9889;'],
+  ['stress','Estresse','&#127752;'],['appetite','Apetite','&#127860;'],['libido','Libido','&#9825;']];
+
+TELAS['bem-estar'] = function(){
+  cabecalho({titulo:'Humor e bem-estar', voltar:'registros'});
+  var data = estado.dataRegistro;
+  return lerDiario(data).then(function(salvo){
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+    v.append(el('p',{class:'texto-suave',style:'text-align:center;margin-bottom:var(--sp-5)',texto:formatarDataLonga(data)}));
+    v.append(el('h2',{class:'secao-titulo',texto:'Como você está hoje?'}));
+    var gH = gradeOpcoes(HUMORES);
+    v.append(gH);
+    grupoSelecao(gH,false);
+    if (salvo && salvo.mood) marcarSelecao(gH, salvo.mood);
+
+    v.append(el('h2',{class:'secao-titulo',texto:'Do seu jeito, de 0 a 10'}));
+    var cartao = el('div',{class:'cartao'}), campos = {};
+    ESCALAS.forEach(function(es){
+      var r = el('input',{type:'range',min:'0',max:'10',step:'1',
+        value:String(salvo && salvo[es[0]] != null ? salvo[es[0]] : 5),'aria-label':es[1]});
+      var val = el('span',{class:'valor',texto:r.value+'/10'});
+      r.addEventListener('input', function(){ val.textContent = r.value+'/10'; });
+      campos[es[0]] = r;
+      var l = el('div',{class:'linha-escala'});
+      l.append(el('span',{class:'glifo',html:es[2]}), el('span',{texto:es[1]}), r, val);
+      cartao.append(l);
+    });
+    v.append(cartao);
+
+    v.append(el('h2',{class:'secao-titulo',texto:'Observações'}));
+    var nota = el('textarea',{placeholder:'Escreva algo sobre o seu dia…',maxlength:'600'});
+    nota.value = (salvo && salvo.notes) || '';
+    v.append(el('div',{class:'campo'}, nota));
+
+    var btn = el('button',{class:'btn',texto:'Salvar registro'});
+    v.append(btn);
+    tela.append(v);
+
+    btn.onclick = function(){
+      ocupar(btn, true);
+      var p = {mood: selecionados(gH,false), notes: nota.value.trim() || null};
+      ESCALAS.forEach(function(es){ p[es[0]] = Number(campos[es[0]].value); });
+      salvarDiario(data, p)
+        .then(function(ok){ avisarSalvo(ok); irPara('registros'); })
+        .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar registro'); });
+    };
+  });
+};
+
+TELAS.historico = function(){
+  cabecalho({titulo:'Histórico', voltar:'registros'});
+  return listarDiarios().then(function(lista){
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+    if (!lista.length){
+      v.append(el('div',{class:'vazio',html:'<span class="glifo">&#9675;</span>Nenhum registro ainda. Comece pelo dia de hoje.'}));
+      v.append(el('button',{class:'btn',texto:'Registrar hoje',
+        onclick:function(){ estado.dataRegistro = hojeISO(); irPara('registrar-dia'); }}));
+      return tela.append(v);
+    }
+    lista.forEach(function(r){
+      var partes = [];
+      if (r.flow) partes.push('fluxo ' + rotulo(FLUXOS, r.flow).toLowerCase());
+      if (r.mood) partes.push(rotulo(HUMORES, r.mood).toLowerCase());
+      if (r.symptoms && r.symptoms.length) partes.push(r.symptoms.length + ' sintoma' + (r.symptoms.length>1?'s':''));
+      v.append(el('button',{class:'cartao-link',style:'margin-bottom:var(--sp-2)',
+        onclick:function(){ estado.dataRegistro = r.date; irPara('registrar-dia'); },
+        html:'<span><strong>'+formatarDataLonga(r.date)+'</strong>'+
+          '<span class="texto-suave" style="display:block">'+(partes.join(' · ') || 'Sem detalhes')+'</span></span>'+
+          '<span class="seta">&#8250;</span>'}));
+    });
+    tela.append(v);
+  });
+};
+function rotulo(lista, valor){
+  for (var i = 0; i < lista.length; i++) if (lista[i][0] === valor) return lista[i][1];
+  return valor;
+}
+
+var ARTIGOS = [
+  {fase:'menstruacao',titulo:'Menstruação',texto:'O ciclo começa no primeiro dia de sangramento. É comum sentir cólicas, cansaço e queda de energia. Descanso, calor local e hidratação costumam ajudar. Sangramento muito intenso, com coágulos grandes, ou dor que impede a rotina merece avaliação de um profissional de saúde.'},
+  {fase:'folicular',titulo:'Fase folicular',texto:'Depois da menstruação, os níveis hormonais voltam a subir. Muitas mulheres relatam mais disposição, foco e vontade de se movimentar. É uma boa janela para começar projetos e treinos mais intensos, se isso fizer sentido para você.'},
+  {fase:'fertil',titulo:'Período fértil',texto:'É a janela em que a gravidez tem mais chance de acontecer, estimada em torno da ovulação. O muco cervical tende a ficar mais transparente e elástico. Lembre: a estimativa do app pode errar, e ela não substitui um método contraceptivo.'},
+  {fase:'ovulacao',titulo:'Ovulação',texto:'É a liberação do óvulo, que costuma ocorrer cerca de duas semanas antes da próxima menstruação. Algumas mulheres sentem uma dor leve de um lado do abdômen. A data exata varia de ciclo para ciclo, mesmo em ciclos regulares.'},
+  {fase:'tpm',titulo:'Fase lútea e TPM',texto:'Nos dias que antecedem a menstruação é comum haver inchaço, sensibilidade nos seios, irritabilidade e mudanças no apetite e no sono. Se os sintomas forem intensos a ponto de atrapalhar seu dia a dia, vale conversar com um profissional de saúde.'}
+];
+
+TELAS.conteudo = function(){
+  cabecalho({titulo:'Conteúdo', voltar:'inicio'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+  v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-5)',
+    texto:'Textos gerais para entender melhor cada fase. São informações educativas, não orientação médica individual.'}));
+  ARTIGOS.forEach(function(a){
+    var c = el('div',{class:'cartao',style:'margin-bottom:var(--sp-3)'});
+    c.append(
+      el('div',{style:'display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)',
+        html:'<span style="width:10px;height:10px;border-radius:50%;background:'+FASES[a.fase].cor+'"></span><strong>'+a.titulo+'</strong>'}),
+      el('p',{class:'texto-suave',texto:a.texto})
+    );
+    v.append(c);
+  });
+  v.append(el('p',{class:'aviso-rodape',texto:
+    'Estes textos têm caráter informativo e não substituem consultas, exames ou orientação de profissionais de saúde.'}));
+  tela.append(v);
+};
+
+TELAS.mais = function(){
+  cabecalho({titulo:'Meu perfil', voltar:'inicio'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'}), u = auth.currentUser;
+  var p = estado.perfil || {};
+  v.append(el('div',{class:'cartao',style:'display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-5)',
+    html:'<span style="width:48px;height:48px;border-radius:50%;background:var(--rosa-050);display:grid;place-content:center;color:var(--rosa-600);font-family:var(--font-display);font-size:20px">'+
+      ((p.firstName||'?').charAt(0).toUpperCase())+'</span>'+
+      '<span><strong>'+(p.firstName||'Sem nome')+' '+(p.lastName||'')+'</strong>'+
+      '<span class="texto-suave" style="display:block">'+(u.isAnonymous ? 'Acesso sem conta' : (u.email||''))+'</span></span>'}));
+
+  if (u.isAnonymous){
+    v.append(el('div',{class:'aviso',style:'margin-bottom:var(--sp-5)',html:
+      '<span class="glifo">&#9432;</span><div>Você está sem conta. Se limpar os dados do navegador ou trocar de aparelho, seus registros se perdem.</div>'}));
+  }
+
+  [['meus-ciclos','Meus dados do ciclo'],['notificacoes','Lembretes e notificações'],
+   ['privacidade','Privacidade e segurança'],['historico','Seus ciclos e histórico'],
+   ['conteudo','Conteúdos e dicas'],['termos','Termos e privacidade']
+  ].forEach(function(it){
+    v.append(el('button',{class:'cartao-link',style:'margin-bottom:var(--sp-2)',
+      onclick:function(){ irPara(it[0]); },
+      html:'<span>'+it[1]+'</span><span class="seta">&#8250;</span>'}));
+  });
+
+  v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',texto:'Sair da conta',
+    onclick:function(){ auth.signOut(); }}));
+  v.append(el('button',{class:'btn-texto',style:'display:block;margin:var(--sp-5) auto 0;color:var(--danger)',
+    texto:'Excluir meus dados', onclick:excluirMeusDados}));
+  tela.append(v);
+};
+
+function excluirMeusDados(){
+  if (!confirm('Isso apaga seu perfil, seus ciclos e todos os registros. Não dá para desfazer. Quer continuar?')) return;
+  excluirTudo()
+    .then(function(){ return auth.currentUser.delete().catch(function(){ return auth.signOut(); }); })
+    .then(function(){ avisar('Seus dados foram excluídos.'); })
+    .catch(function(e){ console.error(e); avisar(mensagemErro(e)); });
+}
+
+TELAS['meus-ciclos'] = function(){
+  cabecalho({titulo:'Meus dados do ciclo', voltar:'mais'});
+  var cfg = estado.config || {};
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+  var iUltima = el('input',{type:'date',value:cfg.ultimaMenstruacao || ''});
+  var iCiclo = el('input',{type:'number',min:'21',max:'45',value:String(cfg.duracaoCiclo || 28),inputmode:'numeric'});
+  var iMenst = el('input',{type:'number',min:'1',max:'10',value:String(cfg.duracaoMenstruacao || 5),inputmode:'numeric'});
+  v.append(campo('Primeiro dia da última menstruação', iUltima));
+  v.append(campo('Duração média do ciclo (dias)', iCiclo, 'Entre 21 e 45 dias.'));
+  v.append(campo('Duração média da menstruação (dias)', iMenst, 'Entre 1 e 10 dias.'));
+
+  var bAjuste = el('button',{class:'alternador',type:'button'});
+  var ajuste = cfg.ajusteAutomatico !== false;
+  var c = el('div',{class:'cartao'});
+  c.append(linhaAlternador('Ajustar a média automaticamente pelos meus registros', bAjuste));
+  v.append(c);
+  alternador(bAjuste, ajuste, function(x){ ajuste = x; });
+
+  var erro = el('div',{class:'campo erro oculto',role:'alert'});
+  var btn = el('button',{class:'btn',style:'margin-top:var(--sp-5)',texto:'Salvar alterações'});
+  v.append(erro, btn);
+  tela.append(v);
+
+  btn.onclick = function(){
+    var u = iUltima.value, dc = Number(iCiclo.value), dm = Number(iMenst.value);
+    var problema = !u ? 'Informe o primeiro dia da última menstruação.'
+      : difDias(u, hojeISO()) < 0 ? 'Essa data é futura. Escolha um dia que já passou.'
+      : !(dc >= 21 && dc <= 45) ? 'A duração do ciclo deve ficar entre 21 e 45 dias.'
+      : !(dm >= 1 && dm <= 10) ? 'A duração da menstruação deve ficar entre 1 e 10 dias.'
+      : dm >= dc ? 'A menstruação não pode durar o ciclo inteiro. Revise os dois números.' : null;
+    if (problema){ erro.textContent = problema; erro.classList.remove('oculto'); return; }
+    erro.classList.add('oculto');
+    ocupar(btn, true);
+    var novo = {ultimaMenstruacao:u, duracaoCiclo:dc, duracaoMenstruacao:dm, ajusteAutomatico:ajuste};
+    salvarConfigCiclo(novo)
+      .then(function(){ return registrarCiclo(u); })
+      .then(listarCiclos)
+      .then(function(cs){ estado.ciclos = cs; estado.config = normalizar(novo); avisar('Dados atualizados.'); irPara('inicio'); })
+      .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar alterações'); });
+  };
+};
+
+TELAS.notificacoes = function(){
+  cabecalho({titulo:'Lembretes e notificações', voltar:'mais'});
+  return lerNotificacoes().then(function(prefs){
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'}), atual = Object.assign({}, prefs);
+    var c = el('div',{class:'cartao'});
+    [['antesMenstruacao','Avisar 2 dias antes da menstruação estimada'],
+     ['janelaFertil','Avisar quando começar o período fértil estimado'],
+     ['registroDiario','Lembrar de fazer o registro do dia']
+    ].forEach(function(l){
+      var b = el('button',{class:'alternador',type:'button'});
+      c.append(linhaAlternador(l[1], b));
+      alternador(b, !!prefs[l[0]], function(x){ atual[l[0]] = x; });
+    });
+    v.append(c);
+    v.append(el('p',{class:'texto-suave',style:'margin-top:var(--sp-4)',
+      texto:'Os lembretes seguem as estimativas do app, que podem não coincidir com o seu ciclo real.'}));
+    var btn = el('button',{class:'btn',style:'margin-top:var(--sp-5)',texto:'Salvar preferências'});
+    v.append(btn);
+    tela.append(v);
+    btn.onclick = function(){
+      ocupar(btn, true);
+      salvarNotificacoes(atual)
+        .then(function(ok){ avisarSalvo(ok, 'Preferências salvas.'); irPara('mais'); })
+        .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar preferências'); });
+    };
+  });
+};
+
+TELAS.privacidade = function(){
+  cabecalho({titulo:'Privacidade e segurança', voltar:'mais'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela doc'});
+  v.append(el('div',{class:'cartao',html:
+    '<strong>Onde ficam seus dados</strong><p class="texto-suave" style="margin-top:var(--sp-2)">'+
+    'Seus registros ficam na sua conta e só podem ser lidos por você. Nenhum outro usuário tem acesso.</p>'}));
+  v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',
+    texto:'Baixar meus dados', onclick:exportarDados}));
+  v.append(el('button',{class:'btn-texto',style:'display:block;margin:var(--sp-5) auto 0;color:var(--danger)',
+    texto:'Excluir meus dados', onclick:excluirMeusDados}));
+  tela.append(v);
+};
+
+function exportarDados(){
+  Promise.all([listarCiclos(), listarDiarios()]).then(function(res){
+    var pacote = {perfil:estado.perfil, configuracaoCiclo:estado.config,
+      ciclos:res[0], registrosDiarios:res[1], exportadoEm:new Date().toISOString()};
+    var blob = new Blob([JSON.stringify(pacote, null, 2)], {type:'application/json'});
+    var a = el('a',{href:URL.createObjectURL(blob), download:'ciclo-femme-'+hojeISO()+'.json'});
+    a.click();
+    URL.revokeObjectURL(a.href);
+    avisar('Arquivo gerado.');
+  }).catch(function(e){ console.error(e); avisar(mensagemErro(e)); });
+}
+
+TELAS.termos = function(){
+  cabecalho({titulo:'Termos e privacidade', voltar:'mais'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela doc'});
+  v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-4)',
+    texto:'Versão provisória. Estes textos ainda serão revisados por um profissional do direito antes da publicação.'}));
+  v.append(
+    el('h2',{texto:'O que o Ciclo Femme é'}),
+    el('p',{texto:'Um aplicativo de acompanhamento do ciclo menstrual. Ele organiza as informações que você registra e calcula estimativas de datas a partir delas.'}),
+    el('h2',{texto:'O que o Ciclo Femme não é'}),
+    el('p',{texto:'Não é um dispositivo médico. Não realiza diagnóstico, não indica tratamento e não substitui médicos, consultas, exames ou qualquer orientação de profissional de saúde.'}),
+    el('p',{texto:'Não é um método contraceptivo. As informações sobre período fértil e ovulação são estimativas e podem apresentar erros. Não utilize o aplicativo para evitar uma gravidez. Para prevenção, utilize métodos contraceptivos adequados e procure orientação de um profissional de saúde.'}),
+    el('h2',{texto:'Estimativas'}),
+    el('p',{texto:'Todas as previsões são calculadas pelo método do calendário, com base nos dados que você informou. Ciclos irregulares, uso de contraceptivos, estresse, alterações de peso e diversas condições de saúde podem alterar o ciclo real.'}),
+    el('h2',{texto:'Quais dados coletamos'}),
+    el('p',{texto:'Nome, sobrenome (opcional) e data de nascimento; datas e duração dos seus ciclos; registros diários de fluxo, humor, sintomas e observações; registros de fertilidade; e suas preferências de lembrete.'}),
+    el('h2',{texto:'Dados sensíveis'}),
+    el('p',{texto:'Informações sobre saúde e vida sexual são dados pessoais sensíveis nos termos da Lei Geral de Proteção de Dados (Lei 13.709/2018). São tratados com base no seu consentimento, que você pode retirar a qualquer momento excluindo seus dados no aplicativo.'}),
+    el('h2',{texto:'Seus direitos'}),
+    el('p',{texto:'Você pode, a qualquer momento, acessar seus dados, corrigi-los, baixá-los em arquivo e excluí-los por completo, em Mais › Privacidade e segurança.'})
+  );
+  tela.append(v);
+};
+
+/* =========================================================
+   9. INICIALIZAÇÃO
+   ========================================================= */
+function iniciarApp(){
+  return lerPerfil().then(function(perfil){
+    if (!perfil) return telaOnboarding();
+    estado.perfil = perfil;
+    return Promise.all([lerConfigCiclo(), listarCiclos()]).then(function(res){
+      estado.config = res[0] ? normalizar(res[0]) : null;
+      estado.ciclos = res[1];
+      nav.classList.remove('oculto');
+      tela.style.padding = 'var(--sp-5) var(--sp-5) 96px';
+      montarNav();
+      if (!location.hash) location.hash = 'inicio';
+      renderizar();
+    });
+  });
+}
+
+setTimeout(function(){ $('#abertura').classList.add('saindo'); }, 1900);
+
+auth.onAuthStateChanged(function(u){
+  if (!u){
+    estado.perfil = null; estado.config = null; estado.ciclos = [];
+    if (location.hash) history.replaceState(null, '', location.pathname);
+    return telaEntrada();
+  }
+  tela.innerHTML = '<div class="carregando"><div class="giro"></div></div>';
+  iniciarApp().catch(function(e){
+    console.error(e);
+    tela.innerHTML = '';
+    tela.append(el('div',{class:'vazio',html:'<span class="glifo">&#9888;</span>'+mensagemErro(e)}));
+  });
+});
+
+window.addEventListener('hashchange', function(){
+  if (auth.currentUser && estado.perfil) renderizar();
+});
+
+/* =========================================================
+   10. FUNCIONAMENTO OFFLINE E INSTALAÇÃO
+   ========================================================= */
+var faixa = el('div',{class:'faixa-conexao',role:'status'});
+document.body.prepend(faixa);
+
+function mostrarFaixa(texto, classeExtra, aoClicar){
+  faixa.textContent = texto;
+  faixa.className = 'faixa-conexao visivel' + (classeExtra ? ' ' + classeExtra : '');
+  faixa.onclick = aoClicar || null;
+  document.body.classList.add('com-faixa');
+}
+function esconderFaixa(){
+  faixa.className = 'faixa-conexao';
+  faixa.onclick = null;
+  document.body.classList.remove('com-faixa');
+}
+function conferirConexao(){
+  if (navigator.onLine) esconderFaixa();
+  else mostrarFaixa('Sem internet. O app continua funcionando e sincroniza depois.');
+}
+window.addEventListener('online', function(){
+  esconderFaixa();
+  avisar('De volta online. Seus registros estão sincronizando.');
+});
+window.addEventListener('offline', conferirConexao);
+conferirConexao();
+
+/* Service worker: guarda o app para abrir sem internet. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      // Avisa quando houver uma versão nova esperando para entrar.
+      function conferirEspera(){
+        if (reg.waiting) {
+          mostrarFaixa('Nova versão disponível. Toque para atualizar.', 'atualizacao', function(){
+            reg.waiting.postMessage('atualizar-agora');
+          });
+        }
+      }
+      conferirEspera();
+      reg.addEventListener('updatefound', function(){
+        var novo = reg.installing;
+        if (!novo) return;
+        novo.addEventListener('statechange', function(){
+          if (novo.state === 'installed' && navigator.serviceWorker.controller) conferirEspera();
+        });
+      });
+    }).catch(function(e){
+      console.warn('Service worker não registrado:', e);
+    });
+
+    var recarregando = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (recarregando) return;
+      recarregando = true;
+      location.reload();
+    });
+  });
+}
+
+/* Convite para instalar, quando o navegador oferecer. */
+var promptInstalar = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  promptInstalar = e;
+  setTimeout(function(){
+    if (!promptInstalar || !auth.currentUser) return;
+    mostrarFaixa('Instalar o Ciclo Femme no celular. Toque aqui.', 'atualizacao', function(){
+      esconderFaixa();
+      promptInstalar.prompt();
+      promptInstalar.userChoice.then(function(){ promptInstalar = null; });
+    });
+  }, 8000);
+});
+window.addEventListener('appinstalled', function(){
+  promptInstalar = null;
+  esconderFaixa();
+});
+</script>
+</body>
+</html>

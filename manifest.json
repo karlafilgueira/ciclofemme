@@ -1,0 +1,56 @@
+{
+  "name": "Ciclo Femme",
+  "short_name": "Ciclo Femme",
+  "description": "Calendário menstrual para acompanhar seu ciclo, seus registros e seu bem-estar. Ferramenta de acompanhamento, não substitui profissionais de saúde.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF4F1",
+  "theme_color": "#FDF4F1",
+  "categories": ["health", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar hoje",
+      "short_name": "Registrar",
+      "description": "Anotar fluxo, humor e sintomas do dia",
+      "url": "./index.html#registrar-dia",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Calendário",
+      "short_name": "Calendário",
+      "description": "Ver o calendário do ciclo",
+      "url": "./index.html#calendario",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
