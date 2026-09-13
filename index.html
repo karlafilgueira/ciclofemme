@@ -9,9 +9,9 @@
 <title>Ciclo Femme</title>
 
 <!-- Instalação como app -->
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json?v=3">
+<link rel="icon" href="icons/favicon.png?v=3" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Ciclo Femme">
@@ -282,6 +282,54 @@ body.com-faixa .topo{padding-top:calc(var(--sp-4) + 28px)}
 .doc h2{font-family:var(--font-ui);font-size:var(--t-body);font-weight:600;margin:var(--sp-5) 0 var(--sp-2)}
 .doc p{color:var(--text-soft);margin-bottom:var(--sp-3);line-height:1.65;font-size:var(--t-small)}
 
+
+/* --- Leitura do intervalo entre ciclos --- */
+.nota-ciclo{border:1px solid var(--border);background:var(--surface);
+  border-radius:var(--r-md);padding:var(--sp-4);margin-top:var(--sp-4);
+  font-size:var(--t-small);line-height:1.55;animation:entrada var(--mov-medio) both}
+.nota-ciclo strong{display:block;margin-bottom:var(--sp-1);font-size:var(--t-body);color:var(--text)}
+.nota-ciclo.ok{background:var(--verde-150);border-color:transparent}
+.nota-ciclo.fora{background:var(--lilas-050);border-color:var(--lilas-150)}
+.nota-ciclo .rodape{display:block;margin-top:var(--sp-2);color:var(--text-soft)}
+.marca{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);
+  font-size:var(--t-micro);letter-spacing:.02em;white-space:nowrap}
+.marca.ok{background:var(--verde-150);color:#2F5A45}
+.marca.fora{background:var(--lilas-150);color:var(--lilas-800)}
+.marca.alerta{background:var(--rosa-150);color:var(--rosa-900)}
+.marca.neutra{background:var(--creme-200);color:var(--text-soft)}
+
+/* --- Anel --- */
+.anel .fase-arco{fill:none;stroke-linecap:round;opacity:.85}
+.anel .ponto-hoje{fill:var(--surface);stroke:var(--rosa-500);stroke-width:3}
+
+/* --- Padrões de sintomas --- */
+.padrao{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:var(--sp-4);margin-bottom:var(--sp-3)}
+.padrao .cabeca{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)}
+.padrao .cabeca strong{flex:1}
+.trilha{position:relative;height:10px;border-radius:var(--r-pill);
+  background:linear-gradient(90deg,var(--rosa-150) 0 18%,var(--creme-200) 18% 100%);margin:var(--sp-3) 0 var(--sp-2)}
+.trilha .janela{position:absolute;top:-3px;height:16px;border-radius:var(--r-pill);
+  background:var(--lilas-500);opacity:.75}
+.trilha-legenda{display:flex;justify-content:space-between;font-size:var(--t-micro);color:var(--text-soft)}
+
+/* --- Exames --- */
+.exame{display:flex;align-items:center;gap:var(--sp-3);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-4);margin-bottom:var(--sp-2)}
+.exame .corpo{flex:1;min-width:0}
+.exame .corpo strong{display:block}
+
+/* --- Modo de vida --- */
+.cartao-modo{background:linear-gradient(160deg,var(--rosa-050),var(--lilas-050));
+  border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--sp-6) var(--sp-5);
+  text-align:center;animation:entrada var(--mov-medio) both}
+.cartao-modo .numero{font-family:var(--font-display);font-weight:300;font-size:var(--t-display);
+  line-height:1.15;color:var(--rosa-700);margin:var(--sp-2) 0}
+.cartao-modo .rotulo{font-size:var(--t-small);color:var(--text-soft)}
+@media (prefers-color-scheme:dark){
+  .cartao-modo{background:linear-gradient(160deg,var(--rosa-050),var(--lilas-050))}
+}
+
 /* No modo escuro os tons claros do dia ficam ilegíveis: aqui vão os pares próprios. */
 @media (prefers-color-scheme:dark){
   .dia.menstruacao{background:#5E2B3B;color:#FFD9E2}
@@ -509,6 +557,8 @@ function resumoAtual(cfg, iso){
 function mapaDoMes(cfg, ano, mes){
   var mapa = {}, c = normalizar(cfg);
   if (!c.ultimaMenstruacao) return mapa;
+  // Gestação, pós-parto e menopausa: não faz sentido projetar fases.
+  if (typeof acompanhandoCiclo === 'function' && !acompanhandoCiclo()) return mapa;
   var total = new Date(ano, mes+1, 0).getDate();
   for (var d = 1; d <= total; d++){
     var iso = paraISO(new Date(ano, mes, d));
@@ -559,6 +609,56 @@ function analisarCiclos(ciclos){
   };
 }
 
+/* Faixa em que a maior parte dos ciclos adultos costuma cair.
+   Não é meta nem regra: 28 dias é apenas a média mais citada, e ciclos
+   de 21 a 35 dias são igualmente comuns. Nada aqui diagnostica nada. */
+var CICLO_MIN = 21, CICLO_MAX = 35;
+
+function classificarIntervalo(dias){
+  if (dias < CICLO_MIN) return 'curto';
+  if (dias > CICLO_MAX) return 'longo';
+  return 'comum';
+}
+
+/* Mensagem mostrada quando um ciclo retroativo é adicionado.
+   Devolve {classe, titulo, texto, rodape}. */
+function lerCicloAdicionado(iso){
+  var inicios = estado.ciclos.map(function(c){ return c.startDate; }).filter(Boolean).sort();
+  var pos = inicios.indexOf(iso);
+
+  if (pos < 1){
+    return {classe:'', titulo:'Ciclo adicionado.',
+      texto:'Registre também o ciclo anterior a este para o app começar a comparar a duração entre eles.'};
+  }
+
+  var dias = difDias(inicios[pos-1], iso);
+  var tipo = classificarIntervalo(dias);
+  var seguinte = pos < inicios.length - 1 ? difDias(iso, inicios[pos+1]) : null;
+  var a = estado.analise;
+  var foraRecentes = (a && a.intervalos ? a.intervalos : []).filter(function(d){
+    return classificarIntervalo(d) !== 'comum';
+  }).length;
+
+  var r;
+  if (tipo === 'comum'){
+    r = {classe:'ok', titulo:dias + ' dias desde o ciclo anterior.',
+         texto:'Está dentro da faixa mais comum, que vai de ' + CICLO_MIN + ' a ' + CICLO_MAX + ' dias.'};
+  } else {
+    r = {classe:'fora', titulo:dias + ' dias desde o ciclo anterior.',
+         texto:(tipo === 'curto' ? 'É mais curto' : 'É mais longo') +
+               ' que a faixa comum (' + CICLO_MIN + ' a ' + CICLO_MAX + ' dias). Um mês fora da média acontece com frequência: estresse, viagem, sono e alguns remédios já mudam o intervalo.'};
+  }
+
+  if (tipo !== 'comum' && foraRecentes >= 2){
+    r.rodape = 'Isso apareceu em ' + foraRecentes + ' dos seus últimos ciclos registrados. Se continuar se repetindo, vale comentar com sua ginecologista — e este histórico ajuda nessa conversa.';
+  } else if (seguinte !== null){
+    r.rodape = 'O ciclo seguinte a este durou ' + seguinte + ' dias.';
+  } else {
+    r.rodape = 'O Ciclo Femme acompanha e estima. Ele não diagnostica nada.';
+  }
+  return r;
+}
+
 function mediaDosCiclos(ciclos){
   var a = analisarCiclos(ciclos);
   return (a && a.n) ? a.mediana : null;
@@ -596,6 +696,101 @@ function textoBaseDaPrevisao(){
 }
 
 /* =========================================================
+   3B. PADRÕES: sintoma x fase do ciclo
+   Cruza os registros diários com os inícios de menstruação já
+   registrados. Descreve o que se repete; não explica causas nem
+   sugere tratamento.
+   ========================================================= */
+function cicloDoDia(inicios, iso){
+  var ini = null, prox = null;
+  for (var i = 0; i < inicios.length; i++){
+    if (difDias(inicios[i], iso) >= 0){ ini = inicios[i]; prox = inicios[i+1] || null; }
+  }
+  if (!ini) return null;
+  return {inicio:ini, proximo:prox, dia:difDias(ini, iso) + 1,
+          antes: prox ? difDias(iso, prox) : null};
+}
+
+function mediana(lista){
+  if (!lista.length) return null;
+  var o = lista.slice().sort(function(a,b){ return a-b; }), m = Math.floor(o.length/2);
+  return o.length % 2 ? o[m] : Math.round((o[m-1] + o[m]) / 2);
+}
+
+/* Devolve uma lista de padrões, do mais frequente para o menos. */
+function analisarPadroes(diarios, ciclos){
+  var inicios = (ciclos||[]).map(function(c){ return c.startDate; }).filter(Boolean).sort();
+  if (inicios.length < 2) return [];
+
+  var porSintoma = {}, ciclosComRegistro = {};
+  (diarios||[]).forEach(function(r){
+    var c = cicloDoDia(inicios, r.date);
+    if (!c) return;
+    ciclosComRegistro[c.inicio] = true;
+    var lista = (r.symptoms || []).slice();
+    if (r.flow) lista.push('__fluxo');
+    lista.forEach(function(sint){
+      var p = porSintoma[sint] || (porSintoma[sint] = {ciclos:{}, dias:[], antes:[], vezes:0});
+      p.ciclos[c.inicio] = true;
+      p.vezes++;
+      p.dias.push(c.dia);
+      if (c.antes !== null) p.antes.push(c.antes);
+    });
+  });
+
+  var totalCiclos = Object.keys(ciclosComRegistro).length;
+  var saida = [];
+  Object.keys(porSintoma).forEach(function(sint){
+    if (sint === '__fluxo') return;
+    var p = porSintoma[sint];
+    var nCiclos = Object.keys(p.ciclos).length;
+    if (nCiclos < 2) return;                       // um mês só não é padrão
+    saida.push({
+      id: sint,
+      nome: rotulo(SINTOMAS, sint),
+      ciclos: nCiclos,
+      totalCiclos: totalCiclos,
+      vezes: p.vezes,
+      diaTipico: mediana(p.dias),
+      diaMin: Math.min.apply(null, p.dias),
+      diaMax: Math.max.apply(null, p.dias),
+      antesTipico: p.antes.length >= 2 ? mediana(p.antes) : null,
+      forca: nCiclos / Math.max(1, totalCiclos)
+    });
+  });
+  saida.sort(function(a,b){ return (b.forca - a.forca) || (b.vezes - a.vezes); });
+  return saida;
+}
+
+function frasePadrao(p){
+  var dMenst = (estado.config && estado.config.duracaoMenstruacao) || 5;
+  var quando;
+  if (p.diaTipico <= dMenst){
+    quando = p.diaTipico === 1 ? 'no primeiro dia da menstruação'
+                               : 'durante a menstruação, por volta do dia ' + p.diaTipico;
+  } else if (p.antesTipico !== null && p.antesTipico <= 10){
+    quando = p.antesTipico === 0 ? 'no dia em que a menstruação começou'
+      : 'cerca de ' + p.antesTipico + (p.antesTipico === 1 ? ' dia' : ' dias') + ' antes da menstruação';
+  } else {
+    quando = 'por volta do dia ' + p.diaTipico + ' do ciclo';
+  }
+  return 'Apareceu em ' + p.ciclos + ' dos seus últimos ' + p.totalCiclos +
+         (p.totalCiclos === 1 ? ' ciclo' : ' ciclos') + ' com registro, ' + quando + '.';
+}
+
+/* Padrão que se encaixa nos próximos dias, para o aviso da tela inicial. */
+function padraoProximo(padroes, diasParaMenstruacao){
+  if (diasParaMenstruacao === null || diasParaMenstruacao === undefined) return null;
+  for (var i = 0; i < padroes.length; i++){
+    var p = padroes[i];
+    if (p.antesTipico === null || p.antesTipico > 10 || p.ciclos < 2 || p.forca < 0.5) continue;
+    var falta = diasParaMenstruacao - p.antesTipico;
+    if (falta >= 0 && falta <= 2) return {padrao:p, falta:falta};
+  }
+  return null;
+}
+
+/* =========================================================
    4. FIRESTORE
    Estrutura idêntica às regras de segurança.
    ========================================================= */
@@ -606,7 +801,9 @@ var DB = {
   notif: function(){ return db.collection('users').doc(uid()).collection('notificationSettings').doc('geral'); },
   ciclos: function(){ return db.collection('users').doc(uid()).collection('cycles'); },
   diarios: function(){ return db.collection('users').doc(uid()).collection('dailyRecords'); },
-  ferteis: function(){ return db.collection('users').doc(uid()).collection('fertilityRecords'); }
+  ferteis: function(){ return db.collection('users').doc(uid()).collection('fertilityRecords'); },
+  exames: function(){ return db.collection('users').doc(uid()).collection('exams'); },
+  modo: function(){ return db.collection('users').doc(uid()).collection('settings').doc('modoVida'); }
 };
 
 /* O Firestore aplica a escrita no cache local na hora, mas a promessa só
@@ -663,7 +860,7 @@ function salvarDiario(data, dados){
 }
 function lerDiario(data){ return DB.diarios().doc(data).get().then(function(s){ return s.exists ? s.data() : null; }); }
 function listarDiarios(){
-  return DB.diarios().orderBy('date','desc').limit(60).get().then(function(s){
+  return DB.diarios().orderBy('date','desc').limit(180).get().then(function(s){
     return s.docs.map(function(d){ return d.data(); });
   });
 }
@@ -676,14 +873,37 @@ function lerNotificacoes(){
     return s.exists ? s.data() : {antesMenstruacao:true, janelaFertil:true, registroDiario:false};
   });
 }
+/* --- Exames preventivos --- */
+function salvarExame(id, dados){
+  var doc = id ? DB.exames().doc(id) : DB.exames().doc();
+  return confirmarEscrita(doc.set(Object.assign({}, dados, {atualizadoEm:new Date().toISOString()}), {merge:true}))
+    .then(function(ok){ return {ok:ok, id:doc.id}; });
+}
+function excluirExame(id){ return confirmarEscrita(DB.exames().doc(id).delete()); }
+function listarExames(){
+  return DB.exames().orderBy('date','desc').limit(60).get().then(function(s){
+    return s.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+  });
+}
+
+/* --- Modo de vida (ciclo, gestação, pós-parto, menopausa) --- */
+function lerModoVida(){
+  return DB.modo().get().then(function(s){ return s.exists ? s.data() : {modo:'ciclo'}; });
+}
+function salvarModoVida(m){
+  return confirmarEscrita(DB.modo().set(Object.assign({}, m, {atualizadoEm:new Date().toISOString()})));
+}
+
 function salvarNotificacoes(p){ return confirmarEscrita(DB.notif().set(Object.assign({}, p, {atualizadoEm:new Date().toISOString()}), {merge:true})); }
 
 function excluirTudo(){
-  var cols = [DB.ciclos(), DB.diarios(), DB.ferteis()];
+  var cols = [DB.ciclos(), DB.diarios(), DB.ferteis(), DB.exames()];
   return Promise.all(cols.map(function(c){
     return c.get().then(function(s){ return Promise.all(s.docs.map(function(d){ return d.ref.delete(); })); });
   })).then(function(){
-    return Promise.all([DB.ciclo().delete().catch(function(){}), DB.notif().delete().catch(function(){})]);
+    return Promise.all([DB.ciclo().delete().catch(function(){}),
+                        DB.notif().delete().catch(function(){}),
+                        DB.modo().delete().catch(function(){})]);
   }).then(function(){ return DB.perfil().delete(); });
 }
 
@@ -709,6 +929,7 @@ function mensagemErro(e){
    5. ESTADO E NAVEGAÇÃO
    ========================================================= */
 var estado = { perfil:null, config:null, ciclos:[], analise:null,
+               diarios:[], padroes:[], exames:[], modo:{modo:'ciclo'},
                mesVisivel:new Date(), dataRegistro:hojeISO() };
 var tela = $('#tela'), topo = $('#topo'), nav = $('#nav');
 var TELAS = {};
@@ -758,8 +979,8 @@ function renderizar(){
   var fn = TELAS[rota] || TELAS.inicio;
   Array.prototype.forEach.call(nav.querySelectorAll('.nav-item'), function(b){
     var ativa = b.dataset.rota === rota
-      || (['registrar-dia','fertilidade','bem-estar','historico'].indexOf(rota) !== -1 && b.dataset.rota === 'registros')
-      || (['meus-ciclos','ciclos-anteriores','notificacoes','privacidade','termos'].indexOf(rota) !== -1 && b.dataset.rota === 'mais');
+      || (['registrar-dia','fertilidade','bem-estar','historico','padroes'].indexOf(rota) !== -1 && b.dataset.rota === 'registros')
+      || (['meus-ciclos','ciclos-anteriores','notificacoes','privacidade','termos','exames','modo-vida'].indexOf(rota) !== -1 && b.dataset.rota === 'mais');
     b.setAttribute('aria-current', ativa ? 'page' : 'false');
   });
   tela.innerHTML = '<div class="carregando"><div class="giro"></div></div>';
@@ -989,40 +1210,105 @@ function telaOnboarding(){
 /* =========================================================
    8. TELAS DO APP
    ========================================================= */
+/* Anel do ciclo. `segmentos` desenha as fases no aro externo;
+   `progresso` (0 a 1) desenha o arco dourado-rosa e o ponto de hoje. */
+function anelCiclo(op){
+  var R = 96, RE = 112, circ = 2*Math.PI*R, circE = 2*Math.PI*RE;
+  var prog = Math.min(1, Math.max(0, op.progresso || 0));
+  var ang = (-90 + 360*prog) * Math.PI/180;
+  var px = 120 + R*Math.cos(ang), py = 120 + R*Math.sin(ang);
+
+  function arco(de, ate, cor){
+    var len = Math.max(1, (ate - de) * circE);
+    return '<circle class="fase-arco" cx="120" cy="120" r="'+RE+'" stroke="'+cor+'" stroke-width="7" '+
+      'stroke-dasharray="'+len+' '+(circE-len)+'" stroke-dashoffset="'+(-de*circE)+'" '+
+      'transform="rotate(-90 120 120)"/>';
+  }
+  var fases = (op.segmentos || []).map(function(g){ return arco(g.de, g.ate, g.cor); }).join('');
+
+  return el('div',{class:'anel-envoltorio',html:
+    '<div style="position:relative">'+
+      '<svg class="anel" viewBox="0 0 240 240" role="img" aria-label="'+(op.acessivel||'Progresso do ciclo')+'">'+
+      '<defs><linearGradient id="gradRosa" x1="0" y1="0" x2="1" y2="1">'+
+      '<stop offset="0%" stop-color="#E79DAF"/><stop offset="55%" stop-color="#D1506B"/>'+
+      '<stop offset="100%" stop-color="#8E63C4"/></linearGradient></defs>'+
+      '<circle class="trilho" cx="120" cy="120" r="'+R+'"/>'+
+      fases +
+      '<circle class="progresso" cx="120" cy="120" r="'+R+'" stroke-dasharray="'+circ+'" '+
+      'stroke-dashoffset="'+(circ*(1-prog))+'" transform="rotate(-90 120 120)"/>'+
+      (prog > 0 ? '<circle class="ponto-hoje" cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="7"/>' : '')+
+      '</svg>'+
+      '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:0 42px">'+
+        '<div class="rotulo">'+op.rotulo+'</div>'+
+        (op.numero ? '<div class="numero">'+op.numero+'</div>' : '')+
+        (op.detalhe ? '<div class="previsao">'+op.detalhe+'</div>' : '')+
+      '</div></div>'});
+}
+
+function segmentosDasFases(cfg, inicio){
+  var c = normalizar(cfg), m = marcosDoCiclo(c, inicio), dur = c.duracaoCiclo;
+  function f(iso){ return Math.min(1, Math.max(0, difDias(inicio, iso)/dur)); }
+  return [
+    {de:0, ate:f(m.fimMenstruacao)+1/dur, cor:'var(--rosa-300)'},
+    {de:f(m.inicioFertil), ate:f(m.fimFertil)+1/dur, cor:'var(--verde-500)'},
+    {de:f(m.ovulacao), ate:f(m.ovulacao)+1/dur, cor:'var(--lilas-500)'},
+    {de:f(m.inicioTPM), ate:1, cor:'var(--lilas-300)'}
+  ];
+}
+
 TELAS.inicio = function(){
   cabecalho({saudacao: 'Olá, ' + ((estado.perfil && estado.perfil.firstName) || 'tudo bem') + '!'});
-  var r = resumoAtual(estado.config);
   tela.innerHTML = '';
   var v = el('div',{class:'tela'});
 
+  /* Fora do modo "acompanhando meu ciclo", as previsões saem de cena. */
+  if (!acompanhandoCiclo()){
+    v.append(cartaoDoModo());
+    v.append(el('button',{class:'btn',style:'margin-top:var(--sp-6)',texto:'Registrar hoje',
+      onclick:function(){ estado.dataRegistro = hojeISO(); irPara('registrar-dia'); }}));
+    v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-3)',
+      onclick:function(){ irPara('modo-vida'); },
+      html:'<span><strong>Mudar meu momento</strong><span class="texto-suave" style="display:block">'+
+        MODOS[modoAtual()].nome+'</span></span><span class="seta">&#8250;</span>'}));
+    v.append(el('p',{class:'aviso-rodape',texto:MODOS[modoAtual()].rodape}));
+    return tela.append(v);
+  }
+
+  var r = resumoAtual(estado.config);
   if (!r){
     v.append(el('div',{class:'vazio',html:'<span class="glifo">&#9675;</span>Ainda não temos a data da sua última menstruação.'}));
     v.append(el('button',{class:'btn',texto:'Informar meus dados',onclick:function(){ irPara('meus-ciclos'); }}));
     return tela.append(v);
   }
 
-  var raio = 100, circ = 2*Math.PI*raio, offset = circ*(1-r.progresso), faltam = r.diasParaMenstruacao;
-  v.append(el('div',{class:'anel-envoltorio',html:
-    '<div style="position:relative">'+
-      '<svg class="anel" viewBox="0 0 240 240"><defs><linearGradient id="gradRosa" x1="0" y1="0" x2="1" y2="1">'+
-      '<stop offset="0%" stop-color="#E79DAF"/><stop offset="55%" stop-color="#D1506B"/>'+
-      '<stop offset="100%" stop-color="#8E63C4"/></linearGradient></defs>'+
-      '<circle class="trilho" cx="120" cy="120" r="'+raio+'"/>'+
-      '<circle class="progresso" cx="120" cy="120" r="'+raio+'" stroke-dasharray="'+circ+'" '+
-      'stroke-dashoffset="'+offset+'" transform="rotate(-90 120 120)"/></svg>'+
-      '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center">'+
-        '<div class="rotulo">'+(faltam === 0 ? 'Sua menstruação pode começar hoje' : 'Sua próxima menstruação em')+'</div>'+
-        (faltam === 0 ? '' : '<div class="numero">'+faltam+' '+(faltam===1?'dia':'dias')+'</div>')+
-        '<div class="previsao">Estimativa: '+formatarData(r.proximaMenstruacao)+'</div>'+
-      '</div></div>'}));
+  var faltam = r.diasParaMenstruacao;
+  v.append(anelCiclo({
+    progresso: r.progresso,
+    segmentos: segmentosDasFases(estado.config, r.marcos.inicio),
+    rotulo: faltam === 0 ? 'Sua menstruação pode começar hoje' : 'Sua próxima menstruação em',
+    numero: faltam === 0 ? '' : faltam + ' ' + (faltam === 1 ? 'dia' : 'dias'),
+    detalhe: 'Estimativa: ' + formatarData(r.proximaMenstruacao),
+    acessivel: 'Dia ' + r.diaDoCiclo + ' de um ciclo de ' + r.duracaoCiclo + ' dias'
+  }));
 
-  var faixa = faixaPrevisao(r.proximaMenstruacao);
+  var fx = faixaPrevisao(r.proximaMenstruacao);
   v.append(el('p',{class:'texto-suave',style:'text-align:center',
-    texto:'Provavelmente entre ' + formatarData(faixa.de) + ' e ' + formatarData(faixa.ate) + '.'}));
+    texto:'Provavelmente entre ' + formatarData(fx.de) + ' e ' + formatarData(fx.ate) + '.'}));
   v.append(el('p',{class:'texto-suave',style:'text-align:center;font-size:var(--t-micro);margin-top:var(--sp-1)',
     texto:'Dia '+r.diaDoCiclo+' de um ciclo de '+r.duracaoCiclo+' dias · '+textoBaseDaPrevisao()}));
 
-  // Com pouco histórico a previsão é fraca: convidamos a preencher o que já existe em papel.
+  // Aviso de padrão: só quando o sintoma costuma aparecer nos próximos dias.
+  var prox = padraoProximo(estado.padroes, faltam);
+  if (prox){
+    v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-5)',
+      onclick:function(){ irPara('padroes'); },
+      html:'<span style="width:10px;height:34px;border-radius:var(--r-pill);background:var(--lilas-500);flex:none"></span>'+
+        '<span><strong>'+prox.padrao.nome+(prox.falta === 0 ? ' costuma aparecer por volta de hoje' :
+          ' costuma aparecer em ' + prox.falta + (prox.falta === 1 ? ' dia' : ' dias'))+'</strong>'+
+        '<span class="texto-suave" style="display:block">Pelo que você registrou nos últimos ciclos. É uma observação do seu histórico, não uma previsão médica.</span></span>'+
+        '<span class="seta">&#8250;</span>'}));
+  }
+
   if (!estado.analise || estado.analise.n < 3){
     v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-5)',
       onclick:function(){ irPara('ciclos-anteriores'); },
@@ -1040,13 +1326,13 @@ TELAS.inicio = function(){
       '<span class="seta">&#8250;</span>'}));
 
   var m = r.marcos;
-  var faixa = el('div',{class:'faixa-fases'});
-  faixa.append(
+  var faixaFases = el('div',{class:'faixa-fases'});
+  faixaFases.append(
     pilula('Período fértil', formatarData(m.inicioFertil,{day:'numeric'})+'–'+formatarData(m.fimFertil), 'var(--verde-500)'),
     pilula('Ovulação', formatarData(m.ovulacao), 'var(--lilas-500)'),
     pilula('TPM', 'a partir de '+formatarData(m.inicioTPM,{day:'numeric'}), 'var(--lilas-300)')
   );
-  v.append(faixa);
+  v.append(faixaFases);
 
   v.append(el('button',{class:'btn',style:'margin-top:var(--sp-6)',texto:'Registrar hoje',
     onclick:function(){ estado.dataRegistro = hojeISO(); irPara('registrar-dia'); }}));
@@ -1065,6 +1351,13 @@ TELAS.calendario = function(){
   tela.innerHTML = '';
   var v = el('div',{class:'tela'});
   v.append(desenharCalendario());
+  if (!acompanhandoCiclo()){
+    v.append(el('div',{class:'aviso',style:'margin-top:var(--sp-4)',html:
+      '<span class="glifo">&#9432;</span><div>No modo <strong>'+MODOS[modoAtual()].nome.toLowerCase()+
+      '</strong> o calendário não projeta fases. Seus registros continuam sendo salvos normalmente.</div>'}));
+    v.append(el('p',{class:'aviso-rodape',texto:'Você pode trocar seu momento em Mais › Meu momento.'}));
+    return tela.append(v);
+  }
   var r = resumoAtual(estado.config);
   if (r){
     v.append(el('button',{class:'cartao-link',style:'margin-top:var(--sp-4)',
@@ -1135,6 +1428,7 @@ TELAS.registros = function(){
   [['registrar-dia','Registrar do dia','Fluxo, humor e sintomas','var(--rosa-500)'],
    ['fertilidade','Fertilidade','Temperatura, muco e testes','var(--verde-500)'],
    ['bem-estar','Humor e bem-estar','Sono, energia, estresse e mais','var(--lilas-500)'],
+   ['padroes','Meus padrões','O que se repete em cada fase','var(--lilas-300)'],
    ['historico','Histórico','O que você já registrou','var(--ouro-500)']
   ].forEach(function(g){
     v.append(el('button',{class:'cartao-link',style:'margin-bottom:var(--sp-3)',
@@ -1220,6 +1514,7 @@ TELAS['registrar-dia'] = function(){
 /* Marcar fluxo num dia distante do último início vira um novo ciclo. */
 function talvezNovoCiclo(data){
   var cfg = estado.config;
+  if (!acompanhandoCiclo()) return Promise.resolve();   // gestação, pós-parto, menopausa
   if (!cfg || !cfg.ultimaMenstruacao) return Promise.resolve();
   if (difDias(cfg.ultimaMenstruacao, data) < 18) return Promise.resolve();
   if (difDias(data, hojeISO()) < 0) return Promise.resolve();
@@ -1423,7 +1718,9 @@ TELAS.mais = function(){
       '<span class="glifo">&#9432;</span><div>Você está sem conta. Se limpar os dados do navegador ou trocar de aparelho, seus registros se perdem.</div>'}));
   }
 
-  [['meus-ciclos','Meus dados do ciclo'],['ciclos-anteriores','Meus ciclos anteriores'],
+  [['modo-vida','Meu momento (' + MODOS[modoAtual()].nome.toLowerCase() + ')'],
+   ['meus-ciclos','Meus dados do ciclo'],['ciclos-anteriores','Meus ciclos anteriores'],
+   ['exames','Exames e consultas'],['padroes','Meus padrões'],
    ['notificacoes','Lembretes e notificações'],
    ['privacidade','Privacidade e segurança'],['historico','Seus ciclos e histórico'],
    ['conteudo','Conteúdos e dicas'],['termos','Termos e privacidade']
@@ -1432,6 +1729,9 @@ TELAS.mais = function(){
       onclick:function(){ irPara(it[0]); },
       html:'<span>'+it[1]+'</span><span class="seta">&#8250;</span>'}));
   });
+
+  v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',
+    texto:'Gerar relatório para a consulta', onclick:gerarRelatorio}));
 
   v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',texto:'Sair da conta',
     onclick:function(){ auth.signOut(); }}));
@@ -1512,7 +1812,14 @@ TELAS['ciclos-anteriores'] = function(){
   v.append(campo('Primeiro dia da menstruação', iData));
   var erro = el('div',{class:'campo erro oculto',role:'alert'});
   var btnAdd = el('button',{class:'btn',texto:'Adicionar este ciclo'});
-  v.append(erro, btnAdd);
+  var nota = el('div',{class:'nota-ciclo oculto'});
+  v.append(erro, btnAdd, nota);
+
+  function mostrarNota(r){
+    nota.className = 'nota-ciclo ' + (r.classe || '');
+    nota.innerHTML = '<strong>' + r.titulo + '</strong>' + r.texto +
+      (r.rodape ? '<span class="rodape">' + r.rodape + '</span>' : '');
+  }
 
   // --- Resumo do que o histórico já diz ---
   var a = estado.analise;
@@ -1552,7 +1859,10 @@ TELAS['ciclos-anteriores'] = function(){
         el('span',{style:'flex:1',html:
           '<strong>'+formatarDataLonga(iso)+'</strong>'+
           '<span class="texto-suave" style="display:block">'+
-          (intervalo ? intervalo + ' dias depois do anterior' : 'primeiro ciclo registrado')+'</span>'}),
+          (intervalo
+            ? intervalo + ' dias depois do anterior <span class="marca ' +
+              (classificarIntervalo(intervalo) === 'comum' ? 'ok">faixa comum' : 'fora">fora da faixa') + '</span>'
+            : 'primeiro ciclo registrado')+'</span>'}),
         el('button',{class:'btn-icone','aria-label':'Remover este ciclo',
           html:'&#10005;', style:'color:var(--danger)',
           onclick:function(){ remover(iso); }})
@@ -1603,7 +1913,7 @@ TELAS['ciclos-anteriores'] = function(){
       .then(function(){
         iData.value = '';
         ocupar(btnAdd, false, 'Adicionar este ciclo');
-        avisar('Ciclo adicionado.');
+        mostrarNota(lerCicloAdicionado(d));
       })
       .catch(function(e){
         console.error(e);
@@ -1650,16 +1960,19 @@ TELAS.privacidade = function(){
     '<strong>Onde ficam seus dados</strong><p class="texto-suave" style="margin-top:var(--sp-2)">'+
     'Seus registros ficam na sua conta e só podem ser lidos por você. Nenhum outro usuário tem acesso.</p>'}));
   v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',
-    texto:'Baixar meus dados', onclick:exportarDados}));
+    texto:'Gerar relatório para a consulta', onclick:gerarRelatorio}));
+  v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-3)',
+    texto:'Baixar meus dados (arquivo)', onclick:exportarDados}));
   v.append(el('button',{class:'btn-texto',style:'display:block;margin:var(--sp-5) auto 0;color:var(--danger)',
     texto:'Excluir meus dados', onclick:excluirMeusDados}));
   tela.append(v);
 };
 
 function exportarDados(){
-  Promise.all([listarCiclos(), listarDiarios()]).then(function(res){
-    var pacote = {perfil:estado.perfil, configuracaoCiclo:estado.config,
-      ciclos:res[0], registrosDiarios:res[1], exportadoEm:new Date().toISOString()};
+  Promise.all([listarCiclos(), listarDiarios(), listarExames()]).then(function(res){
+    var pacote = {perfil:estado.perfil, configuracaoCiclo:estado.config, modoVida:estado.modo,
+      ciclos:res[0], registrosDiarios:res[1], exames:res[2],
+      exportadoEm:new Date().toISOString()};
     var blob = new Blob([JSON.stringify(pacote, null, 2)], {type:'application/json'});
     var a = el('a',{href:URL.createObjectURL(blob), download:'ciclo-femme-'+hojeISO()+'.json'});
     a.click();
@@ -1693,16 +2006,484 @@ TELAS.termos = function(){
 };
 
 /* =========================================================
+   8B. MODO DE VIDA
+   Fora do ciclo menstrual comum, previsão de menstruação e janela
+   fértil deixam de fazer sentido: o app troca de cara em vez de
+   mostrar estimativas que não valem para o momento.
+   ========================================================= */
+var MODOS = {
+  'ciclo': {
+    nome:'Acompanhando meu ciclo',
+    descricao:'Previsões, calendário e período fértil estimados normalmente.',
+    campo:null,
+    rodape:''
+  },
+  'gestante': {
+    nome:'Gestante',
+    descricao:'O app para de prever menstruação e passa a mostrar as semanas de gestação.',
+    campo:'Primeiro dia da última menstruação antes da gravidez',
+    ajuda:'A idade gestacional aqui é estimada por essa data. Quem define a data correta é o seu pré-natal.',
+    rodape:'As semanas mostradas são uma estimativa a partir da data que você informou. O acompanhamento da gestação é do seu pré-natal, não deste aplicativo.'
+  },
+  'pos-parto': {
+    nome:'Pós-parto',
+    descricao:'Acompanha as semanas desde o parto enquanto o ciclo não volta.',
+    campo:'Data do parto',
+    ajuda:'O retorno da menstruação varia muito de mulher para mulher, principalmente durante a amamentação.',
+    rodape:'Quando a menstruação voltar, registre o primeiro dia e troque de volta para o modo de ciclo. Sangramento intenso, febre ou dor forte no pós-parto pedem avaliação imediata de um profissional.'
+  },
+  'menopausa': {
+    nome:'Climatério ou menopausa',
+    descricao:'Acompanha o tempo desde a última menstruação e seus sintomas.',
+    campo:'Data da última menstruação',
+    ajuda:'Se ainda houver menstruação, atualize essa data a cada vez.',
+    rodape:'Costuma-se falar em menopausa depois de doze meses seguidos sem menstruar, mas só um profissional de saúde pode avaliar o seu caso. Qualquer sangramento depois desse período merece avaliação.'
+  },
+  'sem-ciclo': {
+    nome:'Sem ciclo no momento',
+    descricao:'Para quem usa contraceptivo contínuo ou não menstrua agora. Mantém os registros, sem previsões.',
+    campo:null,
+    rodape:'Neste modo o app guarda seus registros, mas não estima datas.'
+  }
+};
+function modoAtual(){ return (estado.modo && MODOS[estado.modo.modo]) ? estado.modo.modo : 'ciclo'; }
+function acompanhandoCiclo(){ return modoAtual() === 'ciclo'; }
+
+function semanasEDias(dias){
+  var sem = Math.floor(dias/7), d = dias % 7;
+  return sem + (sem === 1 ? ' semana' : ' semanas') + (d ? ' e ' + d + (d === 1 ? ' dia' : ' dias') : '');
+}
+
+function cartaoDoModo(){
+  var m = modoAtual(), ref = estado.modo && estado.modo.referencia;
+  var def = MODOS[m];
+
+  if (m === 'gestante' && ref){
+    var dias = difDias(ref, hojeISO());
+    var dpp = somarDias(ref, 280);
+    return el('div',{},[
+      anelCiclo({
+        progresso: Math.min(1, dias/280),
+        segmentos: [{de:0, ate:13/40, cor:'var(--rosa-300)'},
+                    {de:13/40, ate:27/40, cor:'var(--verde-500)'},
+                    {de:27/40, ate:1, cor:'var(--lilas-300)'}],
+        rotulo:'Você está em',
+        numero: Math.floor(dias/7) + (Math.floor(dias/7) === 1 ? ' semana' : ' semanas'),
+        detalhe: semanasEDias(dias),
+        acessivel:'Semanas de gestação estimadas'
+      }),
+      el('p',{class:'texto-suave',style:'text-align:center',
+        texto:'Data provável do parto: ' + formatarDataLonga(dpp) + '.'}),
+      el('p',{class:'texto-suave',style:'text-align:center;font-size:var(--t-micro);margin-top:var(--sp-1)',
+        texto:'Estimativa pela data que você informou. O pré-natal pode ter outra data, e é a dela que vale.'})
+    ]);
+  }
+
+  if (m === 'pos-parto' && ref){
+    var d2 = difDias(ref, hojeISO());
+    return el('div',{class:'cartao-modo',html:
+      '<div class="rotulo">Desde o nascimento</div>'+
+      '<div class="numero">'+Math.floor(d2/7)+(Math.floor(d2/7) === 1 ? ' semana' : ' semanas')+'</div>'+
+      '<div class="rotulo">'+semanasEDias(d2)+'</div>'+
+      '<p class="texto-suave" style="margin-top:var(--sp-4)">Quando a menstruação voltar, registre o primeiro dia: o app volta a calcular seus ciclos a partir dali.</p>'});
+  }
+
+  if (m === 'menopausa' && ref){
+    var d3 = difDias(ref, hojeISO()), meses = Math.floor(d3/30);
+    return el('div',{class:'cartao-modo',html:
+      '<div class="rotulo">Desde a última menstruação</div>'+
+      '<div class="numero">'+(meses < 1 ? d3 + (d3 === 1 ? ' dia' : ' dias') : meses + (meses === 1 ? ' mês' : ' meses'))+'</div>'+
+      '<div class="rotulo">'+formatarDataLonga(ref)+'</div>'+
+      '<p class="texto-suave" style="margin-top:var(--sp-4)">'+
+      (d3 >= 365 ? 'Já passou de doze meses. Vale conversar com um profissional de saúde sobre este momento.'
+                 : 'Continue registrando sintomas: esse histórico ajuda muito na consulta.')+'</p>'});
+  }
+
+  return el('div',{class:'cartao-modo',html:
+    '<div class="rotulo">Seu momento</div>'+
+    '<div class="numero" style="font-size:var(--t-h1)">'+def.nome+'</div>'+
+    '<p class="texto-suave" style="margin-top:var(--sp-3)">'+def.descricao+'</p>'});
+}
+
+TELAS['modo-vida'] = function(){
+  cabecalho({titulo:'Meu momento', voltar:'mais'});
+  tela.innerHTML = '';
+  var v = el('div',{class:'tela'});
+  v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-5)',
+    texto:'O corpo não fica no mesmo ritmo a vida toda. Escolha o momento em que você está — dá para trocar quando quiser, e nada do que você já registrou se perde.'}));
+
+  var escolhido = modoAtual();
+  var ref = (estado.modo && estado.modo.referencia) || '';
+  var iRef = el('input',{type:'date',max:hojeISO(),value:ref});
+  var caixaRef = campo('Data de referência', iRef);
+  var lista = el('div');
+
+  Object.keys(MODOS).forEach(function(k){
+    var b = el('button',{class:'cartao-link',style:'margin-bottom:var(--sp-2)',
+      html:'<span style="width:12px;height:12px;border-radius:50%;flex:none;background:'+
+        (k === escolhido ? 'var(--rosa-500)' : 'var(--creme-200)')+'"></span>'+
+        '<span><strong>'+MODOS[k].nome+'</strong><span class="texto-suave" style="display:block">'+
+        MODOS[k].descricao+'</span></span>',
+      onclick:function(){ escolhido = k; desenhar(); }});
+    b.dataset.modo = k;
+    lista.append(b);
+  });
+  v.append(lista, caixaRef);
+
+  var erro = el('div',{class:'campo erro oculto',role:'alert'});
+  var btn = el('button',{class:'btn',texto:'Salvar meu momento'});
+  var rodape = el('p',{class:'aviso-rodape'});
+  v.append(erro, btn, rodape);
+  tela.append(v);
+
+  function desenhar(){
+    Array.prototype.forEach.call(lista.children, function(b){
+      b.querySelector('span').style.background = b.dataset.modo === escolhido ? 'var(--rosa-500)' : 'var(--creme-200)';
+    });
+    var def = MODOS[escolhido];
+    caixaRef.classList.toggle('oculto', !def.campo);
+    if (def.campo){
+      caixaRef.querySelector('label').textContent = def.campo;
+      var ajuda = caixaRef.querySelector('.ajuda');
+      if (!ajuda){ ajuda = el('div',{class:'ajuda'}); caixaRef.append(ajuda); }
+      ajuda.textContent = def.ajuda || '';
+    }
+    rodape.textContent = def.rodape || '';
+    erro.classList.add('oculto');
+  }
+  desenhar();
+
+  btn.onclick = function(){
+    var def = MODOS[escolhido];
+    if (def.campo && !iRef.value){
+      erro.textContent = 'Informe a data de referência para este momento.';
+      erro.classList.remove('oculto'); return;
+    }
+    if (def.campo && difDias(iRef.value, hojeISO()) < 0){
+      erro.textContent = 'Essa data é futura. Escolha um dia que já passou.';
+      erro.classList.remove('oculto'); return;
+    }
+    ocupar(btn, true);
+    var novo = {modo:escolhido, referencia: def.campo ? iRef.value : null};
+    salvarModoVida(novo)
+      .then(function(ok){ estado.modo = novo; avisarSalvo(ok, 'Momento atualizado.'); irPara('inicio'); })
+      .catch(function(e){ console.error(e); avisar(mensagemErro(e)); ocupar(btn,false,'Salvar meu momento'); });
+  };
+};
+
+/* =========================================================
+   8C. PADRÕES: o que se repete nos seus registros
+   ========================================================= */
+TELAS.padroes = function(){
+  cabecalho({titulo:'Meus padrões', voltar:'registros'});
+  return listarDiarios().then(function(diarios){
+    estado.diarios = diarios;
+    estado.padroes = analisarPadroes(diarios, estado.ciclos);
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+
+    if (!estado.padroes.length){
+      v.append(el('div',{class:'vazio',html:'<span class="glifo">&#9675;</span>'+
+        'Ainda não dá para ver repetição. O app precisa de sintomas registrados em pelo menos dois ciclos diferentes.'}));
+      v.append(el('button',{class:'btn',texto:'Registrar hoje',
+        onclick:function(){ estado.dataRegistro = hojeISO(); irPara('registrar-dia'); }}));
+      return tela.append(v);
+    }
+
+    v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-5)',
+      texto:'O que os seus registros mostram quando são colocados lado a lado com as datas dos seus ciclos. São coincidências observadas no seu histórico — o app não explica causas nem indica tratamento.'}));
+
+    estado.padroes.forEach(function(p){
+      var c = el('div',{class:'padrao'});
+      var forte = p.forca >= 0.6;
+      c.append(el('div',{class:'cabeca',html:
+        '<strong>'+p.nome+'</strong>'+
+        '<span class="marca '+(forte ? 'fora' : 'neutra')+'">'+
+        (forte ? 'padrão claro' : 'às vezes')+'</span>'}));
+      c.append(el('p',{class:'texto-suave',texto:frasePadrao(p)}));
+
+      // Barra: onde no ciclo o sintoma costuma cair.
+      var dur = (estado.config && estado.config.duracaoCiclo) || 28;
+      var de = Math.max(0, (p.diaMin-1)/dur)*100, ate = Math.min(1, p.diaMax/dur)*100;
+      var trilha = el('div',{class:'trilha'});
+      trilha.append(el('div',{class:'janela',
+        style:'left:'+de.toFixed(1)+'%;width:'+Math.max(4, ate-de).toFixed(1)+'%'}));
+      c.append(trilha);
+      c.append(el('div',{class:'trilha-legenda',html:
+        '<span>Dia 1 (menstruação)</span><span>Dia '+dur+'</span>'}));
+      v.append(c);
+    });
+
+    v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',
+      texto:'Gerar relatório para a consulta', onclick:gerarRelatorio}));
+    v.append(el('p',{class:'aviso-rodape',texto:
+      'Repetição não é diagnóstico. Sintomas fortes, novos ou que atrapalham a sua rotina merecem avaliação de um profissional de saúde.'}));
+    tela.append(v);
+  });
+};
+
+/* =========================================================
+   8D. EXAMES PREVENTIVOS
+   A periodicidade é escolhida pela usuária, porque quem define
+   isso é o profissional que a acompanha — o app só lembra.
+   ========================================================= */
+var TIPOS_EXAME = [
+  ['preventivo','Preventivo (Papanicolau)'],
+  ['mamografia','Mamografia'],
+  ['ultrassom','Ultrassonografia'],
+  ['sangue','Exames de sangue'],
+  ['consulta','Consulta ginecológica'],
+  ['vacina','Vacina'],
+  ['outro','Outro']
+];
+var INTERVALOS = [[0,'Sem lembrete'],[6,'A cada 6 meses'],[12,'A cada 1 ano'],
+                  [24,'A cada 2 anos'],[36,'A cada 3 anos'],[60,'A cada 5 anos']];
+
+function mesesEntre(iso, ate){ return Math.floor(difDias(iso, ate)/30.44); }
+
+function situacaoExame(e){
+  if (!e.intervalMonths) return {classe:'neutra', texto:'sem lembrete'};
+  var venc = somarDias(e.date, Math.round(e.intervalMonths*30.44));
+  var faltam = difDias(hojeISO(), venc);
+  var quando = formatarData(venc, {month:'long', year:'numeric'});
+  if (faltam < 0) return {classe:'alerta', texto:'passou do prazo que você definiu (' + quando + ')', vencimento:venc};
+  if (faltam <= 60) return {classe:'fora', texto:'previsto para ' + quando, vencimento:venc};
+  return {classe:'ok', texto:'em dia até ' + quando, vencimento:venc};
+}
+
+TELAS.exames = function(){
+  cabecalho({titulo:'Exames e consultas', voltar:'mais'});
+  return listarExames().then(function(exames){
+    estado.exames = exames;
+    tela.innerHTML = '';
+    var v = el('div',{class:'tela'});
+    v.append(el('p',{class:'texto-suave',style:'margin-bottom:var(--sp-5)',
+      texto:'Anote quando fez cada exame e de quanto em quanto tempo você quer ser lembrada. Quem define a periodicidade certa para você é o profissional que te acompanha — aqui é só a sua anotação.'}));
+
+    var sTipo = el('select'); TIPOS_EXAME.forEach(function(t){ sTipo.append(opt(t[0], t[1])); });
+    var iNome = el('input',{type:'text',maxlength:'60',placeholder:'Ex.: ultrassom de mama'});
+    var iData = el('input',{type:'date',max:hojeISO()});
+    var sInt = el('select'); INTERVALOS.forEach(function(i){ sInt.append(opt(String(i[0]), i[1])); });
+    sInt.value = '12';
+    var iObs = el('input',{type:'text',maxlength:'120',placeholder:'Resultado, médica, local…'});
+
+    var caixaNome = campo('Descrição (opcional)', iNome);
+    var form = el('div',{class:'cartao',style:'margin-bottom:var(--sp-5)'});
+    form.append(campo('Tipo', sTipo), caixaNome, campo('Data em que fez', iData),
+                campo('Quero ser lembrada', sInt), campo('Observação (opcional)', iObs));
+    var erro = el('div',{class:'campo erro oculto',role:'alert'});
+    var btnAdd = el('button',{class:'btn',texto:'Adicionar'});
+    form.append(erro, btnAdd);
+    v.append(form);
+
+    v.append(el('h2',{class:'secao-titulo',texto:'Meu histórico'}));
+    var lista = el('div');
+    v.append(lista);
+    v.append(el('button',{class:'btn btn-secundario',style:'margin-top:var(--sp-5)',
+      texto:'Gerar relatório para a consulta', onclick:gerarRelatorio}));
+    v.append(el('p',{class:'aviso-rodape',texto:
+      'Os lembretes seguem o intervalo que você mesma escolheu. O Ciclo Femme não recomenda exames nem periodicidade: isso é conversa com o seu profissional de saúde.'}));
+    tela.append(v);
+
+    function desenhar(){
+      lista.innerHTML = '';
+      if (!estado.exames.length){
+        lista.append(el('div',{class:'vazio',html:'<span class="glifo">&#9675;</span>Nenhum exame anotado ainda.'}));
+        return;
+      }
+      estado.exames.forEach(function(e){
+        var sit = situacaoExame(e);
+        var meses = mesesEntre(e.date, hojeISO());
+        var linha = el('div',{class:'exame'});
+        linha.append(
+          el('span',{style:'width:10px;height:38px;border-radius:var(--r-pill);background:var(--ouro-500);flex:none'}),
+          el('span',{class:'corpo',html:
+            '<strong>'+(e.label || rotulo(TIPOS_EXAME, e.type))+'</strong>'+
+            '<span class="texto-suave" style="display:block">'+formatarDataLonga(e.date)+
+            (meses > 0 ? ' · há ' + meses + (meses === 1 ? ' mês' : ' meses') : ' · este mês')+'</span>'+
+            '<span class="marca '+sit.classe+'" style="margin-top:6px">'+sit.texto+'</span>'+
+            (e.notes ? '<span class="texto-suave" style="display:block;margin-top:4px">'+e.notes+'</span>' : '')}),
+          el('button',{class:'btn-icone','aria-label':'Remover',html:'&#10005;',style:'color:var(--danger)',
+            onclick:function(){
+              if (!confirm('Remover esta anotação?')) return;
+              excluirExame(e.id).then(listarExames).then(function(x){
+                estado.exames = x; desenhar(); avisar('Removido.');
+              }).catch(function(err){ console.error(err); avisar(mensagemErro(err)); });
+            }})
+        );
+        lista.append(linha);
+      });
+    }
+    desenhar();
+
+    sTipo.onchange = function(){ caixaNome.classList.toggle('oculto', sTipo.value !== 'outro'); };
+    caixaNome.classList.add('oculto');
+
+    btnAdd.onclick = function(){
+      if (!iData.value){
+        erro.textContent = 'Informe a data em que você fez.';
+        erro.classList.remove('oculto'); return;
+      }
+      if (difDias(iData.value, hojeISO()) < 0){
+        erro.textContent = 'Essa data é futura. Escolha um dia que já passou.';
+        erro.classList.remove('oculto'); return;
+      }
+      erro.classList.add('oculto');
+      ocupar(btnAdd, true);
+      salvarExame(null, {
+        type: sTipo.value,
+        label: iNome.value.trim() || rotulo(TIPOS_EXAME, sTipo.value),
+        date: iData.value,
+        intervalMonths: Number(sInt.value) || null,
+        notes: iObs.value.trim() || null
+      }).then(listarExames).then(function(x){
+        estado.exames = x; desenhar();
+        iData.value = ''; iNome.value = ''; iObs.value = '';
+        ocupar(btnAdd, false, 'Adicionar');
+        avisar('Anotado.');
+      }).catch(function(e){
+        console.error(e); avisar(mensagemErro(e)); ocupar(btnAdd, false, 'Adicionar');
+      });
+    };
+  });
+};
+
+/* =========================================================
+   8E. RELATÓRIO PARA A CONSULTA
+   Monta uma página de impressão e deixa o próprio sistema salvar
+   em PDF. Sem biblioteca externa, funciona offline.
+   ========================================================= */
+function esc(t){
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* As tags de fechamento do relatório vão montadas em pedaços de
+   propósito. O Live Server injeta o script de recarregamento
+   automático procurando pela tag de fechamento do body no arquivo
+   servido. Se essa tag existir dentro de uma string do JavaScript,
+   a injeção cai
+   no meio da string e quebra o arquivo inteiro. No GitHub Pages
+   isso não acontece, mas assim funciona nos dois. */
+var FECHA_HEAD = '<' + '/head><body>';
+var FECHA_BODY = '<' + '/body><' + '/html>';
+
+function htmlDoRelatorio(dados){
+  var p = dados.perfil || {}, a = dados.analise;
+  // A ordem da consulta pode variar: aqui garantimos data crescente.
+  var ciclos = dados.ciclos.slice().filter(function(c){ return c.startDate; })
+    .sort(function(x,y){ return x.startDate < y.startDate ? -1 : 1; });
+  var diarios = dados.diarios.slice().filter(function(r){ return r.date; })
+    .sort(function(x,y){ return x.date > y.date ? -1 : 1; });
+  var linhas = ciclos.map(function(c, i, arr){
+    var ant = i > 0 ? difDias(arr[i-1].startDate, c.startDate) : null;
+    return '<tr><td>' + esc(formatarDataLonga(c.startDate)) + '</td><td>' +
+      (ant ? esc(ant + ' dias') : '—') + '</td><td>' +
+      (ant ? (classificarIntervalo(ant) === 'comum' ? 'faixa comum' : 'fora da faixa comum') : '') + '</td></tr>';
+  }).join('');
+
+  var padroes = dados.padroes.map(function(x){
+    return '<li><strong>' + esc(x.nome) + '</strong> — ' + esc(frasePadrao(x)) + '</li>';
+  }).join('') || '<li>Sem repetição suficiente para descrever padrões.</li>';
+
+  var exames = dados.exames.map(function(e){
+    return '<tr><td>' + esc(e.label || rotulo(TIPOS_EXAME, e.type)) + '</td><td>' +
+      esc(formatarDataLonga(e.date)) + '</td><td>' + esc(e.notes || '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="3">Nenhum exame anotado.</td></tr>';
+
+  var registros = diarios.slice(0, 40).map(function(r){
+    var partes = [];
+    if (r.flow) partes.push('fluxo ' + rotulo(FLUXOS, r.flow).toLowerCase());
+    if (r.mood) partes.push('humor ' + rotulo(HUMORES, r.mood).toLowerCase());
+    (r.symptoms || []).forEach(function(x){ partes.push(rotulo(SINTOMAS, x).toLowerCase()); });
+    if (!partes.length) return '';
+    return '<tr><td>' + esc(formatarData(r.date, {day:'2-digit',month:'2-digit',year:'numeric'})) +
+      '</td><td>' + esc(partes.join(', ')) + '</td></tr>';
+  }).join('');
+
+  var resumo = a && a.n
+    ? '<ul><li>Duração típica (mediana): <strong>' + a.mediana + ' dias</strong></li>' +
+      '<li>Mais curto: ' + a.menor + ' dias · mais longo: ' + a.maior + ' dias</li>' +
+      '<li>Variação entre os ciclos: ' + a.variacao + ' dias</li>' +
+      '<li>Base: ' + a.registros + ' início(s) de menstruação registrado(s)</li></ul>'
+    : '<p>Ainda não há ciclos suficientes para calcular a duração típica.</p>';
+
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+    '<title>Ciclo Femme — relatório</title><style>' +
+    '@page{margin:18mm 14mm}' +
+    'body{font-family:Georgia,"Times New Roman",serif;color:#2A1436;font-size:11.5pt;line-height:1.5}' +
+    'h1{font-size:20pt;font-weight:normal;letter-spacing:.04em;margin:0}' +
+    'h2{font-size:12pt;margin:20px 0 6px;border-bottom:1px solid #EDDDE1;padding-bottom:4px}' +
+    '.sub{color:#6E5A78;font-size:9.5pt;margin-top:4px}' +
+    'table{width:100%;border-collapse:collapse;margin-top:6px;font-size:10pt}' +
+    'th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #F1E4E7;vertical-align:top}' +
+    'th{color:#6E5A78;font-weight:normal;font-size:9pt;text-transform:uppercase;letter-spacing:.05em}' +
+    'ul{margin:6px 0;padding-left:18px}li{margin-bottom:3px}' +
+    '.rodape{margin-top:24px;padding-top:10px;border-top:1px solid #EDDDE1;color:#6E5A78;font-size:9pt;line-height:1.45}' +
+    '<' + '/style>' + FECHA_HEAD +
+    '<h1>Ciclo Femme</h1>' +
+    '<div class="sub">Relatório de acompanhamento · gerado em ' + esc(formatarDataLonga(hojeISO())) + '</div>' +
+    '<h2>Identificação</h2><p>' + esc((p.firstName || '') + ' ' + (p.lastName || '')) +
+    (p.birthDate ? ' · nascimento em ' + esc(formatarDataLonga(p.birthDate)) : '') + '<br>' +
+    'Momento registrado no app: ' + esc(MODOS[dados.modo] ? MODOS[dados.modo].nome : 'Acompanhando meu ciclo') + '</p>' +
+    '<h2>Resumo dos ciclos</h2>' + resumo +
+    '<h2>Inícios de menstruação registrados</h2>' +
+    '<table><tr><th>Primeiro dia</th><th>Intervalo</th><th>Leitura</th></tr>' + linhas + '</table>' +
+    '<h2>Sintomas que se repetem</h2><ul>' + padroes + '</ul>' +
+    '<h2>Exames e consultas anotados</h2>' +
+    '<table><tr><th>Exame</th><th>Data</th><th>Observação</th></tr>' + exames + '</table>' +
+    (registros ? '<h2>Registros diários recentes</h2><table><tr><th>Data</th><th>Registro</th></tr>' + registros + '</table>' : '') +
+    '<div class="rodape"><strong>Sobre este documento.</strong> Foi gerado a partir de anotações feitas pela própria usuária no aplicativo Ciclo Femme. ' +
+    'As durações e faixas são cálculos pelo método do calendário, com caráter informativo. ' +
+    'O Ciclo Femme não é um dispositivo médico, não realiza diagnóstico e não substitui avaliação profissional.</div>' +
+    FECHA_BODY;
+}
+
+function gerarRelatorio(){
+  avisar('Montando o relatório…');
+  Promise.all([listarCiclos(), listarDiarios(), listarExames()]).then(function(res){
+    var dados = {
+      perfil: estado.perfil,
+      analise: analisarCiclos(res[0]),
+      ciclos: res[0],
+      diarios: res[1],
+      exames: res[2],
+      padroes: analisarPadroes(res[1], res[0]),
+      modo: modoAtual()
+    };
+    var quadro = document.getElementById('quadro-relatorio');
+    if (quadro) quadro.remove();
+    quadro = el('iframe',{id:'quadro-relatorio','aria-hidden':'true',
+      style:'position:fixed;right:0;bottom:0;width:1px;height:1px;opacity:0;border:0'});
+    document.body.append(quadro);
+    var doc = quadro.contentWindow.document;
+    doc.open(); doc.write(htmlDoRelatorio(dados)); doc.close();
+    setTimeout(function(){
+      try {
+        quadro.contentWindow.focus();
+        quadro.contentWindow.print();
+      } catch (e){
+        console.error(e);
+        avisar('Seu navegador bloqueou a impressão. Tente pelo menu do navegador.');
+      }
+    }, 350);
+  }).catch(function(e){ console.error(e); avisar(mensagemErro(e)); });
+}
+
+/* =========================================================
    9. INICIALIZAÇÃO
    ========================================================= */
 function iniciarApp(){
   return lerPerfil().then(function(perfil){
     if (!perfil) return telaOnboarding();
     estado.perfil = perfil;
-    return Promise.all([lerConfigCiclo(), listarCiclos()]).then(function(res){
+    return Promise.all([lerConfigCiclo(), listarCiclos(), lerModoVida(), listarDiarios()]).then(function(res){
       estado.config = res[0] ? normalizar(res[0]) : null;
       estado.ciclos = res[1];
+      estado.modo = res[2] || {modo:'ciclo'};
+      estado.diarios = res[3] || [];
       aplicarHistorico();
+      estado.padroes = analisarPadroes(estado.diarios, estado.ciclos);
       nav.classList.remove('oculto');
       tela.style.padding = 'var(--sp-5) var(--sp-5) 96px';
       montarNav();
@@ -1760,26 +2541,48 @@ window.addEventListener('online', function(){
 window.addEventListener('offline', conferirConexao);
 conferirConexao();
 
-/* Service worker: guarda o app para abrir sem internet. */
+/* =========================================================
+   Service worker: guarda o app para abrir sem internet e avisa
+   quando existe versão nova esperando para entrar.
+
+   O sw.js NÃO usa skipWaiting na instalação: a versão nova fica
+   parada em "waiting" até a usuária tocar no aviso. É isso que
+   faz a faixa aparecer de verdade.
+   ========================================================= */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').then(function(reg){
-      // Avisa quando houver uma versão nova esperando para entrar.
-      function conferirEspera(){
-        if (reg.waiting) {
-          mostrarFaixa('Nova versão disponível. Toque para atualizar.', 'atualizacao', function(){
-            reg.waiting.postMessage('atualizar-agora');
-          });
-        }
+    // updateViaCache:'none' impede o navegador de entregar um sw.js
+    // velho guardado no cache HTTP (o GitHub Pages manda cache de 10 min).
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function(reg){
+      var avisando = false;
+
+      function avisarAtualizacao(){
+        if (avisando || !reg.waiting) return;
+        avisando = true;
+        mostrarFaixa('Nova versão disponível. Toque para atualizar.', 'atualizacao', function(){
+          mostrarFaixa('Atualizando…', 'atualizacao');
+          reg.waiting.postMessage('atualizar-agora');
+        });
       }
-      conferirEspera();
+
+      // Versão nova já esperando de uma visita anterior.
+      if (reg.waiting && navigator.serviceWorker.controller) avisarAtualizacao();
+
       reg.addEventListener('updatefound', function(){
         var novo = reg.installing;
         if (!novo) return;
         novo.addEventListener('statechange', function(){
-          if (novo.state === 'installed' && navigator.serviceWorker.controller) conferirEspera();
+          // Sem controller é a primeira instalação: não há o que avisar.
+          if (novo.state === 'installed' && navigator.serviceWorker.controller) avisarAtualizacao();
         });
       });
+
+      // Procura versão nova ao abrir, a cada volta ao app e de hora em hora.
+      reg.update();
+      document.addEventListener('visibilitychange', function(){
+        if (document.visibilityState === 'visible') reg.update();
+      });
+      setInterval(function(){ reg.update(); }, 60 * 60 * 1000);
     }).catch(function(e){
       console.warn('Service worker não registrado:', e);
     });

@@ -3,31 +3,35 @@
 
    Estratégias:
    - Navegação (abrir o app): rede primeiro, cache como reserva.
-     Assim você recebe a versão nova quando estiver online e o app
-     continua abrindo quando não estiver.
    - Ícones, manifest, fontes e SDK do Firebase: cache primeiro.
-     São arquivos que praticamente não mudam.
-   - Chamadas ao Firestore e ao Authentication: NUNCA passam pelo
-     cache. O próprio SDK do Firebase guarda os dados offline e
-     sincroniza sozinho quando a conexão volta.
+   - Firestore e Authentication: NUNCA passam pelo cache.
 
-   Ao publicar uma versão nova do app, troque o número em VERSAO.
+   COMO PUBLICAR UMA VERSÃO NOVA
+   1. Troque o número em VERSAO (obrigatório, sempre).
+   2. Se trocou algum ícone, troque também o ?v= no nome do arquivo
+      aqui, no manifest.json e no <head> do index.html — os três
+      precisam usar exatamente o mesmo número.
+
+   Esta versão NÃO usa skipWaiting() na instalação: a versão nova
+   fica esperando e só entra quando a usuária tocar no aviso
+   "Nova versão disponível". É isso que faz o aviso aparecer.
    =========================================================== */
 
-const VERSAO = 'ciclo-femme-v2';
+const VERSAO = 'ciclo-femme-v3';
+const ICONES_V = '3';                 // troque junto com os ícones
 const CACHE_APP = `${VERSAO}-app`;
 const CACHE_EXTERNO = `${VERSAO}-externo`;
 
 const ARQUIVOS_DO_APP = [
   './',
   './index.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-maskable-192.png',
-  './icons/icon-maskable-512.png',
-  './icons/apple-touch-icon.png',
-  './icons/favicon.png'
+  `./manifest.json?v=${ICONES_V}`,
+  `./icons/icon-192.png?v=${ICONES_V}`,
+  `./icons/icon-512.png?v=${ICONES_V}`,
+  `./icons/icon-maskable-192.png?v=${ICONES_V}`,
+  `./icons/icon-maskable-512.png?v=${ICONES_V}`,
+  `./icons/apple-touch-icon.png?v=${ICONES_V}`,
+  `./icons/favicon.png?v=${ICONES_V}`
 ];
 
 /* Domínios cujas respostas podem ser guardadas em cache. */
@@ -49,9 +53,13 @@ const SEMPRE_REDE = [
 /* ---------- Instalação ---------- */
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
-    caches.open(CACHE_APP)
-      .then((cache) => cache.addAll(ARQUIVOS_DO_APP))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_APP).then((cache) =>
+      // cache: 'reload' ignora o cache HTTP do navegador e busca
+      // os arquivos direto do servidor — sem isso o GitHub Pages
+      // pode devolver a cópia antiga que o navegador guardou.
+      cache.addAll(ARQUIVOS_DO_APP.map((u) => new Request(u, { cache: 'reload' })))
+    )
+    // sem skipWaiting aqui: quem decide é a usuária
   );
 });
 
@@ -123,7 +131,12 @@ self.addEventListener('fetch', (evento) => {
   }
 });
 
-/* ---------- Mensagem vinda da página ---------- */
+/* ---------- Mensagens vindas da página ---------- */
 self.addEventListener('message', (evento) => {
   if (evento.data === 'atualizar-agora') self.skipWaiting();
+
+  // A página pergunta qual versão está rodando (tela "Mais").
+  if (evento.data === 'qual-versao' && evento.source) {
+    evento.source.postMessage({ tipo: 'versao', versao: VERSAO });
+  }
 });
