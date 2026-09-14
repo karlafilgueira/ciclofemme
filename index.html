@@ -9,9 +9,9 @@
 <title>Ciclo Femme</title>
 
 <!-- Instalação como app -->
-<link rel="manifest" href="manifest.json?v=3">
-<link rel="icon" href="icons/favicon.png?v=3" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3">
+<link rel="manifest" href="manifest.json?v=4">
+<link rel="icon" href="icons/favicon-v4.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-v4.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Ciclo Femme">
@@ -153,11 +153,13 @@ input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
 .anel{width:236px;height:236px}
 .anel .trilho{fill:none;stroke:var(--creme-200);stroke-width:12}
 .anel .progresso{fill:none;stroke-width:12;stroke-linecap:round;stroke:url(#gradRosa);
-  transition:stroke-dashoffset var(--mov-lento)}
+  transition:stroke-dashoffset 900ms cubic-bezier(.22,.68,.28,1)}
 .anel-texto .rotulo{font-size:var(--t-small);color:var(--text-soft)}
 .anel-texto .numero{font-family:var(--font-display);font-weight:300;font-size:var(--t-display);
   line-height:1.1;color:var(--rosa-700)}
 .anel-texto .previsao{font-size:var(--t-micro);color:var(--text-soft)}
+.marca-topo{width:44px;display:flex;align-items:center;justify-content:flex-end;
+  opacity:.9;flex:none}
 
 .faixa-fases{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);margin-top:var(--sp-4)}
 .pilula-fase{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);
@@ -297,10 +299,6 @@ body.com-faixa .topo{padding-top:calc(var(--sp-4) + 28px)}
 .marca.fora{background:var(--lilas-150);color:var(--lilas-800)}
 .marca.alerta{background:var(--rosa-150);color:var(--rosa-900)}
 .marca.neutra{background:var(--creme-200);color:var(--text-soft)}
-
-/* --- Anel --- */
-.anel .fase-arco{fill:none;stroke-linecap:round;opacity:.85}
-.anel .ponto-hoje{fill:var(--surface);stroke:var(--rosa-500);stroke-width:3}
 
 /* --- Padrões de sintomas --- */
 .padrao{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);
@@ -928,6 +926,8 @@ function mensagemErro(e){
 /* =========================================================
    5. ESTADO E NAVEGAÇÃO
    ========================================================= */
+var VERSAO_APP = 'v4';   // suba junto com os arquivos, para dar para conferir no aparelho
+
 var estado = { perfil:null, config:null, ciclos:[], analise:null,
                diarios:[], padroes:[], exames:[], modo:{modo:'ciclo'},
                mesVisivel:new Date(), dataRegistro:hojeISO() };
@@ -961,6 +961,21 @@ function montarNav(){
 }
 function irPara(rota){ vibrar(); location.hash = rota; }
 
+/* Marca reduzida: o mesmo aro dourado com o ponto rosa da abertura,
+   em SVG para não pesar nem depender de arquivo. O id do gradiente é
+   diferente do da abertura para os dois não colidirem na mesma página. */
+function logoMarca(tam){
+  tam = tam || 28;
+  return '<svg width="'+tam+'" height="'+tam+'" viewBox="52 27 148 148" fill="none" aria-hidden="true">'+
+    '<defs><linearGradient id="ouroTopo" x1="0" y1="0" x2="1" y2="1">'+
+    '<stop offset="0%" stop-color="#E3C69A"/><stop offset="50%" stop-color="#C89B5A"/>'+
+    '<stop offset="100%" stop-color="#A9762F"/></linearGradient></defs>'+
+    '<circle cx="120" cy="95" r="62" stroke="url(#ouroTopo)" stroke-width="7" '+
+    'stroke-linecap="round" stroke-dasharray="400" stroke-dashoffset="34" '+
+    'transform="rotate(-38 120 95)"/>'+
+    '<circle cx="176" cy="118" r="17" fill="#D1506B"/></svg>';
+}
+
 function cabecalho(op){
   topo.innerHTML = '';
   topo.append(
@@ -970,7 +985,7 @@ function cabecalho(op){
     el('div',{class:'centro', html: op.saudacao
       ? '<div class="saudacao">'+op.saudacao+'</div><div class="subtitulo">Que bom te ver por aqui.</div>'
       : '<div class="saudacao">'+(op.titulo||'')+'</div>'}),
-    el('div',{style:'width:44px'})
+    el('div',{class:'marca-topo',title:'Ciclo Femme',html:logoMarca(28)})
   );
 }
 
@@ -1213,47 +1228,38 @@ function telaOnboarding(){
 /* Anel do ciclo. `segmentos` desenha as fases no aro externo;
    `progresso` (0 a 1) desenha o arco dourado-rosa e o ponto de hoje. */
 function anelCiclo(op){
-  var R = 96, RE = 112, circ = 2*Math.PI*R, circE = 2*Math.PI*RE;
+  var R = 100, circ = 2*Math.PI*R;
   var prog = Math.min(1, Math.max(0, op.progresso || 0));
-  var ang = (-90 + 360*prog) * Math.PI/180;
-  var px = 120 + R*Math.cos(ang), py = 120 + R*Math.sin(ang);
 
-  function arco(de, ate, cor){
-    var len = Math.max(1, (ate - de) * circE);
-    return '<circle class="fase-arco" cx="120" cy="120" r="'+RE+'" stroke="'+cor+'" stroke-width="7" '+
-      'stroke-dasharray="'+len+' '+(circE-len)+'" stroke-dashoffset="'+(-de*circE)+'" '+
-      'transform="rotate(-90 120 120)"/>';
-  }
-  var fases = (op.segmentos || []).map(function(g){ return arco(g.de, g.ate, g.cor); }).join('');
-
-  return el('div',{class:'anel-envoltorio',html:
+  var env = el('div',{class:'anel-envoltorio',html:
     '<div style="position:relative">'+
       '<svg class="anel" viewBox="0 0 240 240" role="img" aria-label="'+(op.acessivel||'Progresso do ciclo')+'">'+
       '<defs><linearGradient id="gradRosa" x1="0" y1="0" x2="1" y2="1">'+
       '<stop offset="0%" stop-color="#E79DAF"/><stop offset="55%" stop-color="#D1506B"/>'+
       '<stop offset="100%" stop-color="#8E63C4"/></linearGradient></defs>'+
       '<circle class="trilho" cx="120" cy="120" r="'+R+'"/>'+
-      fases +
       '<circle class="progresso" cx="120" cy="120" r="'+R+'" stroke-dasharray="'+circ+'" '+
-      'stroke-dashoffset="'+(circ*(1-prog))+'" transform="rotate(-90 120 120)"/>'+
-      (prog > 0 ? '<circle class="ponto-hoje" cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="7"/>' : '')+
+      'stroke-dashoffset="'+circ+'" transform="rotate(-90 120 120)"/>'+
       '</svg>'+
-      '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:0 42px">'+
+      '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:0 34px">'+
         '<div class="rotulo">'+op.rotulo+'</div>'+
         (op.numero ? '<div class="numero">'+op.numero+'</div>' : '')+
         (op.detalhe ? '<div class="previsao">'+op.detalhe+'</div>' : '')+
       '</div></div>'});
-}
 
-function segmentosDasFases(cfg, inicio){
-  var c = normalizar(cfg), m = marcosDoCiclo(c, inicio), dur = c.duracaoCiclo;
-  function f(iso){ return Math.min(1, Math.max(0, difDias(inicio, iso)/dur)); }
-  return [
-    {de:0, ate:f(m.fimMenstruacao)+1/dur, cor:'var(--rosa-300)'},
-    {de:f(m.inicioFertil), ate:f(m.fimFertil)+1/dur, cor:'var(--verde-500)'},
-    {de:f(m.ovulacao), ate:f(m.ovulacao)+1/dur, cor:'var(--lilas-500)'},
-    {de:f(m.inicioTPM), ate:1, cor:'var(--lilas-300)'}
-  ];
+  /* O arco nasce vazio e se desenha até a posição de hoje. O atraso
+     existe porque a transição só dispara quando o elemento já está na
+     tela — sem ele o valor muda antes e o arco aparece pronto.
+     Com "reduzir movimento" ligado no sistema, vai direto ao destino. */
+  var alvo = String(circ * (1 - prog));
+  var semMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(function(){
+    var arco = env.querySelector('.progresso');
+    if (!arco) return;
+    if (semMovimento) arco.style.transition = 'none';
+    arco.style.strokeDashoffset = alvo;
+  }, semMovimento ? 0 : 80);
+  return env;
 }
 
 TELAS.inicio = function(){
@@ -1284,7 +1290,6 @@ TELAS.inicio = function(){
   var faltam = r.diasParaMenstruacao;
   v.append(anelCiclo({
     progresso: r.progresso,
-    segmentos: segmentosDasFases(estado.config, r.marcos.inicio),
     rotulo: faltam === 0 ? 'Sua menstruação pode começar hoje' : 'Sua próxima menstruação em',
     numero: faltam === 0 ? '' : faltam + ' ' + (faltam === 1 ? 'dia' : 'dias'),
     detalhe: 'Estimativa: ' + formatarData(r.proximaMenstruacao),
@@ -1737,8 +1742,36 @@ TELAS.mais = function(){
     onclick:function(){ auth.signOut(); }}));
   v.append(el('button',{class:'btn-texto',style:'display:block;margin:var(--sp-5) auto 0;color:var(--danger)',
     texto:'Excluir meus dados', onclick:excluirMeusDados}));
+
+  var linhaVersao = el('p',{class:'aviso-rodape',
+    texto:'Ciclo Femme ' + VERSAO_APP + ' · toque para procurar atualização'});
+  linhaVersao.style.cursor = 'pointer';
+  linhaVersao.onclick = forcarAtualizacao;
+  v.append(linhaVersao);
   tela.append(v);
 };
+
+/* Descarta service worker e caches e recarrega do servidor. É a saída
+   quando o aparelho ficou preso numa versão antiga. Não mexe nos dados:
+   eles ficam no Firestore, não no cache. */
+function forcarAtualizacao(){
+  if (!confirm('Isso limpa os arquivos guardados neste aparelho e recarrega a versão mais nova. Seus registros não são afetados. Continuar?')) return;
+  avisar('Limpando…');
+  var tarefas = [];
+  if ('serviceWorker' in navigator){
+    tarefas.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+      return Promise.all(rs.map(function(r){ return r.unregister(); }));
+    }).catch(function(){}));
+  }
+  if (window.caches){
+    tarefas.push(caches.keys().then(function(ns){
+      return Promise.all(ns.map(function(n){ return caches.delete(n); }));
+    }).catch(function(){}));
+  }
+  Promise.all(tarefas).then(function(){
+    location.replace(location.pathname + '?atualizado=' + Date.now());
+  });
+}
 
 function excluirMeusDados(){
   if (!confirm('Isso apaga seu perfil, seus ciclos e todos os registros. Não dá para desfazer. Quer continuar?')) return;
@@ -2064,9 +2097,6 @@ function cartaoDoModo(){
     return el('div',{},[
       anelCiclo({
         progresso: Math.min(1, dias/280),
-        segmentos: [{de:0, ate:13/40, cor:'var(--rosa-300)'},
-                    {de:13/40, ate:27/40, cor:'var(--verde-500)'},
-                    {de:27/40, ate:1, cor:'var(--lilas-300)'}],
         rotulo:'Você está em',
         numero: Math.floor(dias/7) + (Math.floor(dias/7) === 1 ? ' semana' : ' semanas'),
         detalhe: semanasEDias(dias),
@@ -2420,7 +2450,17 @@ function htmlDoRelatorio(dados){
     'th{color:#6E5A78;font-weight:normal;font-size:9pt;text-transform:uppercase;letter-spacing:.05em}' +
     'ul{margin:6px 0;padding-left:18px}li{margin-bottom:3px}' +
     '.rodape{margin-top:24px;padding-top:10px;border-top:1px solid #EDDDE1;color:#6E5A78;font-size:9pt;line-height:1.45}' +
+    /* A marca d'água é imagem de conteúdo, não fundo CSS: assim ela sai
+       na impressão mesmo com "gráficos de plano de fundo" desligado, e
+       o position:fixed faz repetir em todas as páginas. */
+    '.marca-agua{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);' +
+    'width:115mm;opacity:.07;z-index:0;pointer-events:none;' +
+    '-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '.marca-agua img{width:100%;display:block}' +
+    '.folha{position:relative;z-index:1}' +
     '<' + '/style>' + FECHA_HEAD +
+    '<div class="marca-agua"><img src="icons/marcadagua-v4.png" alt=""></div>' +
+    '<div class="folha">' +
     '<h1>Ciclo Femme</h1>' +
     '<div class="sub">Relatório de acompanhamento · gerado em ' + esc(formatarDataLonga(hojeISO())) + '</div>' +
     '<h2>Identificação</h2><p>' + esc((p.firstName || '') + ' ' + (p.lastName || '')) +
@@ -2436,6 +2476,7 @@ function htmlDoRelatorio(dados){
     '<div class="rodape"><strong>Sobre este documento.</strong> Foi gerado a partir de anotações feitas pela própria usuária no aplicativo Ciclo Femme. ' +
     'As durações e faixas são cálculos pelo método do calendário, com caráter informativo. ' +
     'O Ciclo Femme não é um dispositivo médico, não realiza diagnóstico e não substitui avaliação profissional.</div>' +
+    '<' + '/div>' +
     FECHA_BODY;
 }
 

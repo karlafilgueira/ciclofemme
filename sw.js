@@ -8,30 +8,33 @@
 
    COMO PUBLICAR UMA VERSÃO NOVA
    1. Troque o número em VERSAO (obrigatório, sempre).
-   2. Se trocou algum ícone, troque também o ?v= no nome do arquivo
-      aqui, no manifest.json e no <head> do index.html — os três
-      precisam usar exatamente o mesmo número.
+   2. Se trocou algum ícone, renomeie os arquivos com o sufixo novo
+      (icon-192-v5.png etc.), troque ICONES_V aqui e atualize o
+      manifest.json, o <head> do index.html e o VERSAO_APP do app.
+      Nome de arquivo novo é o único jeito garantido de o celular
+      reconhecer que o ícone mudou.
 
    Esta versão NÃO usa skipWaiting() na instalação: a versão nova
    fica esperando e só entra quando a usuária tocar no aviso
    "Nova versão disponível". É isso que faz o aviso aparecer.
    =========================================================== */
 
-const VERSAO = 'ciclo-femme-v3';
-const ICONES_V = '3';                 // troque junto com os ícones
+const VERSAO = 'ciclo-femme-v4';
+const ICONES_V = '4';                 // troque junto com os ícones
 const CACHE_APP = `${VERSAO}-app`;
 const CACHE_EXTERNO = `${VERSAO}-externo`;
 
 const ARQUIVOS_DO_APP = [
   './',
   './index.html',
-  `./manifest.json?v=${ICONES_V}`,
-  `./icons/icon-192.png?v=${ICONES_V}`,
-  `./icons/icon-512.png?v=${ICONES_V}`,
-  `./icons/icon-maskable-192.png?v=${ICONES_V}`,
-  `./icons/icon-maskable-512.png?v=${ICONES_V}`,
-  `./icons/apple-touch-icon.png?v=${ICONES_V}`,
-  `./icons/favicon.png?v=${ICONES_V}`
+  './manifest.json?v=' + ICONES_V,
+  './icons/icon-192-v' + ICONES_V + '.png',
+  './icons/icon-512-v' + ICONES_V + '.png',
+  './icons/icon-maskable-192-v' + ICONES_V + '.png',
+  './icons/icon-maskable-512-v' + ICONES_V + '.png',
+  './icons/apple-touch-icon-v' + ICONES_V + '.png',
+  './icons/favicon-v' + ICONES_V + '.png',
+  './icons/marcadagua-v' + ICONES_V + '.png'
 ];
 
 /* Domínios cujas respostas podem ser guardadas em cache. */
