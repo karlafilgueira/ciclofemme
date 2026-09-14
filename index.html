@@ -152,8 +152,9 @@ input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;
 .anel-envoltorio{display:flex;justify-content:center;padding:var(--sp-4) 0 var(--sp-6)}
 .anel{width:236px;height:236px}
 .anel .trilho{fill:none;stroke:var(--creme-200);stroke-width:12}
-.anel .progresso{fill:none;stroke-width:12;stroke-linecap:round;stroke:url(#gradRosa);
-  transition:stroke-dashoffset 900ms cubic-bezier(.22,.68,.28,1)}
+.anel .progresso{fill:none;stroke-width:12;stroke-linecap:round;stroke:url(#gradRosa)}
+.anel .ponto-hoje{fill:var(--surface);stroke:var(--rosa-500);stroke-width:3;
+  transition:opacity var(--mov-medio)}
 .anel-texto .rotulo{font-size:var(--t-small);color:var(--text-soft)}
 .anel-texto .numero{font-family:var(--font-display);font-weight:300;font-size:var(--t-display);
   line-height:1.1;color:var(--rosa-700)}
@@ -926,7 +927,7 @@ function mensagemErro(e){
 /* =========================================================
    5. ESTADO E NAVEGAÇÃO
    ========================================================= */
-var VERSAO_APP = 'v4';   // suba junto com os arquivos, para dar para conferir no aparelho
+var VERSAO_APP = 'v5';   // suba junto com os arquivos, para dar para conferir no aparelho
 
 var estado = { perfil:null, config:null, ciclos:[], analise:null,
                diarios:[], padroes:[], exames:[], modo:{modo:'ciclo'},
@@ -1240,6 +1241,7 @@ function anelCiclo(op){
       '<circle class="trilho" cx="120" cy="120" r="'+R+'"/>'+
       '<circle class="progresso" cx="120" cy="120" r="'+R+'" stroke-dasharray="'+circ+'" '+
       'stroke-dashoffset="'+circ+'" transform="rotate(-90 120 120)"/>'+
+      '<circle class="ponto-hoje" cx="120" cy="'+(120-R)+'" r="7" style="opacity:0"/>'+
       '</svg>'+
       '<div class="anel-texto" style="position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:0 34px">'+
         '<div class="rotulo">'+op.rotulo+'</div>'+
@@ -1247,19 +1249,41 @@ function anelCiclo(op){
         (op.detalhe ? '<div class="previsao">'+op.detalhe+'</div>' : '')+
       '</div></div>'});
 
-  /* O arco nasce vazio e se desenha até a posição de hoje. O atraso
-     existe porque a transição só dispara quando o elemento já está na
-     tela — sem ele o valor muda antes e o arco aparece pronto.
-     Com "reduzir movimento" ligado no sistema, vai direto ao destino. */
-  var alvo = String(circ * (1 - prog));
-  var semMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(function(){
-    var arco = env.querySelector('.progresso');
-    if (!arco) return;
-    if (semMovimento) arco.style.transition = 'none';
-    arco.style.strokeDashoffset = alvo;
-  }, semMovimento ? 0 : 80);
+  /* O arco se desenha do zero até a posição de hoje, levando a bolinha
+     junto na ponta. Feito quadro a quadro em JavaScript de propósito:
+     transição de CSS em stroke-dashoffset depende do navegador e some
+     em vários casos. Aqui o movimento acontece sempre igual.
+     Quem tem "reduzir movimento" ligado vê direto o resultado final. */
+  animarAnel(env, prog, R, circ);
   return env;
+}
+
+function animarAnel(env, prog, R, circ){
+  var arco = env.querySelector('.progresso');
+  var ponto = env.querySelector('.ponto-hoje');
+  if (!arco) return;
+
+  function aplicar(p){
+    arco.setAttribute('stroke-dashoffset', circ * (1 - p));
+    if (!ponto) return;
+    var ang = (-90 + 360*p) * Math.PI/180;
+    ponto.setAttribute('cx', (120 + R*Math.cos(ang)).toFixed(1));
+    ponto.setAttribute('cy', (120 + R*Math.sin(ang)).toFixed(1));
+    ponto.style.opacity = p > 0.02 ? '1' : '0';
+  }
+
+  var semMovimento = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (semMovimento){ aplicar(prog); return; }
+
+  var duracao = 950, inicio = null;
+  aplicar(0);
+  requestAnimationFrame(function passo(agora){
+    if (inicio === null) inicio = agora;
+    var k = Math.min(1, (agora - inicio) / duracao);
+    aplicar(prog * (1 - Math.pow(1 - k, 3)));   // desacelera no fim
+    if (k < 1) requestAnimationFrame(passo);
+  });
 }
 
 TELAS.inicio = function(){
@@ -1751,26 +1775,75 @@ TELAS.mais = function(){
   tela.append(v);
 };
 
-/* Descarta service worker e caches e recarrega do servidor. É a saída
-   quando o aparelho ficou preso numa versão antiga. Não mexe nos dados:
-   eles ficam no Firestore, não no cache. */
+/* =========================================================
+   ATUALIZAÇÃO FORÇADA
+
+   Três camadas guardam cópia do app e nenhuma delas obedece a
+   mesma regra: o cache do service worker, o cache HTTP do
+   navegador e o registro de favicon, que no Chrome e no Edge fica
+   num banco próprio indexado pela URL da página, imune ao
+   Ctrl+Shift+R. Limpar uma só não adianta — por isso as três são
+   varridas juntas aqui.
+
+   Nada disso toca nos dados: eles ficam no Firestore.
+   ========================================================= */
+function limparCaches(){
+  if (!window.caches) return Promise.resolve();
+  return caches.keys()
+    .then(function(nomes){ return Promise.all(nomes.map(function(n){ return caches.delete(n); })); })
+    .catch(function(){});
+}
+
+function descartarServiceWorkers(){
+  if (!('serviceWorker' in navigator)) return Promise.resolve();
+  return navigator.serviceWorker.getRegistrations()
+    .then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); })
+    .catch(function(){});
+}
+
+/* Troca os <link> de ícone por elementos novos com uma marca de tempo.
+   Substituir o elemento (e não só o href) é o que faz o navegador
+   reescrever o registro do favicon daquela página. */
+function renovarIcones(){
+  var marca = 'r=' + Date.now();
+  var links = document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="manifest"]');
+  Array.prototype.forEach.call(links, function(antigo){
+    var base = antigo.getAttribute('href').split('?')[0];
+    var novo = document.createElement('link');
+    novo.rel = antigo.getAttribute('rel');
+    if (antigo.type) novo.type = antigo.type;
+    novo.href = base + '?' + marca;
+    antigo.parentNode.replaceChild(novo, antigo);
+  });
+}
+
+function recarregarLimpo(){
+  // O parâmetro força o navegador a buscar o HTML na rede em vez de
+  // servir a cópia do cache HTTP. Ele some sozinho na próxima visita.
+  location.replace(location.pathname + '?atualizado=' + Date.now());
+}
+
+/* Usada pelo aviso de nova versão e pela linha de versão na tela Mais. */
+function aplicarAtualizacao(reg){
+  mostrarFaixa('Atualizando o aplicativo…', 'atualizacao');
+  renovarIcones();
+  limparCaches().then(function(){
+    if (reg && reg.waiting){
+      reg.waiting.postMessage('atualizar-agora');
+      // Se o controllerchange não vier (acontece em alguns
+      // navegadores), recarrega assim mesmo.
+      setTimeout(recarregarLimpo, 2500);
+    } else {
+      descartarServiceWorkers().then(recarregarLimpo);
+    }
+  });
+}
+
 function forcarAtualizacao(){
   if (!confirm('Isso limpa os arquivos guardados neste aparelho e recarrega a versão mais nova. Seus registros não são afetados. Continuar?')) return;
   avisar('Limpando…');
-  var tarefas = [];
-  if ('serviceWorker' in navigator){
-    tarefas.push(navigator.serviceWorker.getRegistrations().then(function(rs){
-      return Promise.all(rs.map(function(r){ return r.unregister(); }));
-    }).catch(function(){}));
-  }
-  if (window.caches){
-    tarefas.push(caches.keys().then(function(ns){
-      return Promise.all(ns.map(function(n){ return caches.delete(n); }));
-    }).catch(function(){}));
-  }
-  Promise.all(tarefas).then(function(){
-    location.replace(location.pathname + '?atualizado=' + Date.now());
-  });
+  renovarIcones();
+  Promise.all([descartarServiceWorkers(), limparCaches()]).then(recarregarLimpo);
 }
 
 function excluirMeusDados(){
@@ -2601,8 +2674,7 @@ if ('serviceWorker' in navigator) {
         if (avisando || !reg.waiting) return;
         avisando = true;
         mostrarFaixa('Nova versão disponível. Toque para atualizar.', 'atualizacao', function(){
-          mostrarFaixa('Atualizando…', 'atualizacao');
-          reg.waiting.postMessage('atualizar-agora');
+          aplicarAtualizacao(reg);
         });
       }
 

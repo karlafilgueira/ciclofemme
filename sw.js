@@ -7,7 +7,8 @@
    - Firestore e Authentication: NUNCA passam pelo cache.
 
    COMO PUBLICAR UMA VERSÃO NOVA
-   1. Troque o número em VERSAO (obrigatório, sempre).
+   1. Troque o número em VERSAO (obrigatório, sempre) e o VERSAO_APP
+      no index.html, que é o que aparece na tela Mais.
    2. Se trocou algum ícone, renomeie os arquivos com o sufixo novo
       (icon-192-v5.png etc.), troque ICONES_V aqui e atualize o
       manifest.json, o <head> do index.html e o VERSAO_APP do app.
@@ -19,7 +20,7 @@
    "Nova versão disponível". É isso que faz o aviso aparecer.
    =========================================================== */
 
-const VERSAO = 'ciclo-femme-v4';
+const VERSAO = 'ciclo-femme-v5';
 const ICONES_V = '4';                 // troque junto com os ícones
 const CACHE_APP = `${VERSAO}-app`;
 const CACHE_EXTERNO = `${VERSAO}-externo`;
